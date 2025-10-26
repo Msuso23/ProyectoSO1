@@ -100,9 +100,8 @@ public class Ventana extends javax.swing.JFrame {
 
         initializeDetalleColasPanel();
 
-        setupQuantumListener(); // ✅ NUEVO
+        setupQuantumListener();
 
-        // 5. ✅ NUEVO: Configurar GRÁFICOS
         initializeCharts();
 
         // 6. Configurar áreas de texto como no editables
@@ -242,16 +241,16 @@ public class Ventana extends javax.swing.JFrame {
     // ===== INICIALIZAR SPINNERS =====
     private void initializeSpinners() {
         QuantumSpinner.setModel(new SpinnerNumberModel(4, 1, 20, 1));
-        ProcesosEnMemoriaSpinner.setModel(new SpinnerNumberModel(5, 1, 20, 1));
+        ProcesosEnMemoriaSpinner.setModel(new SpinnerNumberModel(10, 1, 20, 1));
         LlegadaCicloSpinner.setModel(new SpinnerNumberModel(0, 0, 100, 1));
         NroInstruccionesSpinner.setModel(new SpinnerNumberModel(10, 1, 100, 1));
         CicloDeIOSpinner.setModel(new SpinnerNumberModel(0, 0, 50, 1));
         DuracionDeIOSpinner.setModel(new SpinnerNumberModel(0, 0, 20, 1));
         TamañoEnMemoriaSpinner.setModel(new SpinnerNumberModel(1024, 512, 8192, 512));
-        Nivel0Spinner.setModel(new SpinnerNumberModel(2, 1, 20, 1));
-        Nivel1Spinner.setModel(new SpinnerNumberModel(4, 1, 20, 1));
-        Nivel2Spinner.setModel(new SpinnerNumberModel(8, 1, 20, 1));
-        Nivel3Spinner.setModel(new SpinnerNumberModel(16, 1, 20, 1));
+        Nivel0Spinner.setModel(new SpinnerNumberModel(1, 1, 20, 1));
+        Nivel1Spinner.setModel(new SpinnerNumberModel(2, 1, 20, 1));
+        Nivel2Spinner.setModel(new SpinnerNumberModel(3, 1, 20, 1));
+        Nivel3Spinner.setModel(new SpinnerNumberModel(4, 1, 20, 1));
 
         VelocidadSlider.setMinimum(1);
         VelocidadSlider.setMaximum(1000);
@@ -263,21 +262,20 @@ public class Ventana extends javax.swing.JFrame {
 
     private void setupVelocidadSliderListener() {
         VelocidadSlider.addChangeListener(e -> {
-            // ✅ Calcular velocidad invertida (1 = rápido, 1000 = lento)
             int rawValue = VelocidadSlider.getValue();
             int speed = 1001 - rawValue; // Invertir escala
 
-            // ✅ NUEVO: Actualizar el label con la velocidad actual
+            // Actualizar el label con la velocidad actual
             VelocidadMsText.setText(speed + " ms");
 
-            // ✅ Actualizar el timer si está corriendo
+            // Actualizar el timer si está corriendo
             if (simulationTimer != null && simulationTimer.isRunning()) {
                 simulationTimer.setDelay(speed);
                 simulationSpeed = speed;
             }
         });
 
-        // ✅ NUEVO: Inicializar el label con el valor inicial del slider
+        // Inicializar el label con el valor inicial del slider
         int initialSpeed = 1001 - VelocidadSlider.getValue();
         VelocidadMsText.setText(initialSpeed + " ms");
     }
@@ -343,13 +341,11 @@ public class Ventana extends javax.swing.JFrame {
     private void customizeGlobalChart(JFreeChart chart) {
         XYPlot plot = chart.getXYPlot();
 
-        // ✅ SIMPLIFICADO: Fondo blanco limpio
         plot.setBackgroundPaint(Color.WHITE);
         plot.setDomainGridlinePaint(new Color(220, 220, 220));
         plot.setRangeGridlinePaint(new Color(220, 220, 220));
         plot.setOutlineVisible(false); // Sin borde
 
-        // ✅ Renderer minimalista
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
 
         // Colores de las series (sin cambios)
@@ -360,27 +356,24 @@ public class Ventana extends javax.swing.JFrame {
 
         // Líneas más delgadas
         for (int i = 0; i < 4; i++) {
-            renderer.setSeriesStroke(i, new BasicStroke(1.5f)); // ✅ Más delgadas
+            renderer.setSeriesStroke(i, new BasicStroke(1.5f));
             renderer.setSeriesShapesVisible(i, false);
         }
 
         plot.setRenderer(renderer);
 
-        // ✅ SIMPLIFICADO: Ejes más pequeños
         NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
-        domainAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 9)); // ✅ Fuente pequeña
+        domainAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 9));
         domainAxis.setLabelFont(new Font("SansSerif", Font.BOLD, 10));
 
         NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
         rangeAxis.setRange(0.0, 1.0);
-        rangeAxis.setTickUnit(new NumberTickUnit(0.2)); // ✅ Menos ticks
+        rangeAxis.setTickUnit(new NumberTickUnit(0.2));
         rangeAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 9));
         rangeAxis.setLabelFont(new Font("SansSerif", Font.BOLD, 10));
 
-        // ✅ SIMPLIFICADO: Título más pequeño
         chart.getTitle().setFont(new Font("SansSerif", Font.BOLD, 11));
 
-        // ✅ LEYENDA más compacta
         chart.getLegend().setItemFont(new Font("SansSerif", Font.PLAIN, 9));
         chart.getLegend().setPadding(2, 2, 2, 2);
     }
@@ -419,7 +412,6 @@ public class Ventana extends javax.swing.JFrame {
     private void customizeProcessChart(JFreeChart chart) {
         XYPlot plot = chart.getXYPlot();
 
-        // ✅ SIMPLIFICADO: Fondo blanco limpio
         plot.setBackgroundPaint(Color.WHITE);
         plot.setDomainGridlinePaint(new Color(220, 220, 220));
         plot.setRangeGridlinePaint(new Color(220, 220, 220));
@@ -429,13 +421,12 @@ public class Ventana extends javax.swing.JFrame {
 
         // Configuración para múltiples procesos
         for (int i = 0; i < 20; i++) {
-            renderer.setSeriesStroke(i, new BasicStroke(1.5f)); // ✅ Más delgadas
+            renderer.setSeriesStroke(i, new BasicStroke(1.5f));
             renderer.setSeriesShapesVisible(i, false);
         }
 
         plot.setRenderer(renderer);
 
-        // ✅ SIMPLIFICADO: Ejes más pequeños
         NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
         domainAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 9));
         domainAxis.setLabelFont(new Font("SansSerif", Font.BOLD, 10));
@@ -445,10 +436,8 @@ public class Ventana extends javax.swing.JFrame {
         rangeAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 9));
         rangeAxis.setLabelFont(new Font("SansSerif", Font.BOLD, 10));
 
-        // ✅ SIMPLIFICADO: Título más pequeño
         chart.getTitle().setFont(new Font("SansSerif", Font.BOLD, 11));
 
-        // ✅ LEYENDA más compacta (pero puede ser abrumadora con 15 procesos)
         chart.getLegend().setItemFont(new Font("SansSerif", Font.PLAIN, 8));
         chart.getLegend().setPadding(1, 1, 1, 1);
     }
@@ -462,6 +451,23 @@ public class Ventana extends javax.swing.JFrame {
             return;
         }
 
+        // Si hay simulación activa, migrar procesos
+        boolean isMigrating = (simulationTimer != null && simulationTimer.isRunning());
+        Lista<Process> processesToMigrate = null;
+        Process currentProcess = null;
+
+        if (isMigrating) {
+            // Guardar proceso actual en CPU
+            currentProcess = cpu.getCurrentProcess();
+
+            // Recolectar todos los procesos READY del scheduler actual
+            processesToMigrate = getReadyQueueFromScheduler();
+
+            logEvent("SCHEDULER", "═══════════════════════════════════════", Color.ORANGE);
+            logEvent("SCHEDULER", "CAMBIO DE ALGORITMO EN CALIENTE", new Color(255, 152, 0));
+            logEvent("SCHEDULER", "Anterior: " + scheduler.getAlgorithmName(), Color.BLUE);
+        }
+
         switch (algorithm) {
             case "FCFS":
                 scheduler = new FCFSScheduler();
@@ -470,21 +476,18 @@ public class Ventana extends javax.swing.JFrame {
                 break;
 
             case "SJF":
-                // ✅ CORREGIDO: SJFScheduler NO tiene constructor con parámetros
                 scheduler = new SJFScheduler();
                 setQuantumEnabled(false);
                 setFeedbackSpinnersEnabled(false);
                 break;
 
             case "SRTF":
-                // ✅ CORRECTO: SRTFScheduler SÍ tiene constructor con boolean
                 scheduler = new SRTFScheduler(true);
                 setQuantumEnabled(false);
                 setFeedbackSpinnersEnabled(false);
                 break;
 
             case "RoundRobin":
-                // ✅ CORREGIDO: Pasar quantum al constructor
                 int quantum = (Integer) QuantumSpinner.getValue();
                 scheduler = new RoundRobinScheduler(quantum);
                 setQuantumEnabled(true);
@@ -492,8 +495,7 @@ public class Ventana extends javax.swing.JFrame {
                 break;
 
             case "Priority":
-                // ✅ CORREGIDO: PriorityScheduler requiere int (aging threshold), no boolean
-                int agingThreshold = 10; // Valor por defecto
+                int agingThreshold = 10;
                 scheduler = new PriorityScheduler(agingThreshold);
                 setQuantumEnabled(false);
                 setFeedbackSpinnersEnabled(false);
@@ -506,7 +508,6 @@ public class Ventana extends javax.swing.JFrame {
                 break;
 
             case "Feedback":
-                // ✅ CORREGIDO: Llamar a setQuantums con 4 parámetros individuales
                 MultilevelFeedbackQueueScheduler mlfq = new MultilevelFeedbackQueueScheduler();
                 mlfq.setQuantums(
                         (Integer) Nivel0Spinner.getValue(),
@@ -522,6 +523,70 @@ public class Ventana extends javax.swing.JFrame {
                 scheduler = new FCFSScheduler();
                 setQuantumEnabled(false);
                 setFeedbackSpinnersEnabled(false);
+        }
+
+        // Migrar procesos al nuevo scheduler
+        if (isMigrating && processesToMigrate != null) {
+            logEvent("SCHEDULER", "Nuevo: " + scheduler.getAlgorithmName(), Color.BLUE);
+
+            // Detectar si el nuevo scheduler es MLFQ
+            boolean isTargetMLFQ = (scheduler instanceof MultilevelFeedbackQueueScheduler);
+
+            // Si va a MLFQ, migrar también procesos bloqueados
+            if (isTargetMLFQ) {
+                MultilevelFeedbackQueueScheduler mlfq = (MultilevelFeedbackQueueScheduler) scheduler;
+
+                // Migrar procesos bloqueados del IOManager al blockedQueue de MLFQ
+                Queue<Process> blockedInIO = ioManager.getBlockedQueue();
+                int blockedCount = blockedInIO.size();
+
+                for (int i = 0; i < blockedCount; i++) {
+                    Process p = blockedInIO.dequeue();
+                    mlfq.getBlockedQueue().enqueue(p);
+                    logEvent("MIGRACIÓN", "P" + p.getPid() + " bloqueado migrado a MLFQ", new Color(156, 39, 176));
+                }
+
+                logEvent("SCHEDULER",
+                        "Migrando " + processesToMigrate.getSize() + " READY + " + blockedCount + " BLOCKED...",
+                        Color.BLUE);
+            } else {
+                logEvent("SCHEDULER", "Migrando " + processesToMigrate.getSize() + " procesos...", Color.BLUE);
+            }
+
+            // Migrar procesos READY
+            for (int i = 0; i < processesToMigrate.getSize(); i++) {
+                Process p = processesToMigrate.get(i);
+                if (p.getState() == ProcessState.READY) {
+
+                    // Método especial para MLFQ
+                    if (isTargetMLFQ) {
+                        ((MultilevelFeedbackQueueScheduler) scheduler).addMigratedProcess(p);
+                    } else {
+                        scheduler.addProcess(p);
+                    }
+
+                    logEvent("MIGRACIÓN", "P" + p.getPid() + " migrado al nuevo scheduler", new Color(103, 58, 183));
+                }
+            }
+
+            // Si había proceso en CPU, liberarlo y agregarlo a READY
+            if (currentProcess != null && !currentProcess.isFinished()) {
+                cpu.releaseProcess();
+                currentProcess.setState(ProcessState.READY);
+
+                // Método especial para MLFQ
+                if (isTargetMLFQ) {
+                    ((MultilevelFeedbackQueueScheduler) scheduler).addMigratedProcess(currentProcess);
+                } else {
+                    scheduler.addProcess(currentProcess);
+                }
+
+                lastExecutedProcess = null;
+                logEvent("MIGRACIÓN", "P" + currentProcess.getPid() + " liberado de CPU y migrado",
+                        new Color(103, 58, 183));
+            }
+
+            logEvent("SCHEDULER", "═══════════════════════════════════════", Color.ORANGE);
         }
     }
 
@@ -590,7 +655,7 @@ public class Ventana extends javax.swing.JFrame {
         // Crear scheduler según algoritmo seleccionado
         createScheduler();
 
-        // ✅ NUEVO: Procesar procesos con AT=0 ANTES de iniciar timer
+        // Procesar procesos con AT=0 ANTES de iniciar timer
         for (int i = 0; i < allProcesses.getSize(); i++) {
             Process p = allProcesses.get(i);
             if (p.getArrivalTime() == 0 && p.getState() == ProcessState.NEW) {
@@ -650,15 +715,73 @@ public class Ventana extends javax.swing.JFrame {
         isPaused = false;
         PausarButton.setText("⏸ Pausar");
 
-        // ✅ NUEVO: Log de finalización
         logEvent("SISTEMA", "═══════════════════════════════════════", Color.BLACK);
-        logEvent("SISTEMA", "SIMULACIÓN DETENIDA", Color.RED);
+        logEvent("SISTEMA", "SIMULACIÓN DETENIDA MANUALMENTE", Color.RED);
         logEvent("SISTEMA", String.format("Ciclos totales: %d", globalClock), Color.BLUE);
         logEvent("SISTEMA", String.format("Procesos terminados: %d/%d",
                 terminatedProcesses.getSize(), allProcesses.getSize()), Color.BLUE);
+
+        // ✅ NUEVO: Contar procesos en cada estado
+        int ready = 0, blocked = 0, suspended = 0, running = 0, newState = 0;
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            switch (p.getState()) {
+                case READY:
+                    ready++;
+                    break;
+                case BLOCKED:
+                    blocked++;
+                    break;
+                case SUSPENDED:
+                    suspended++;
+                    break;
+                case RUNNING:
+                    running++;
+                    break;
+                case NEW:
+                    newState++;
+                    break;
+            }
+        }
+
+        logEvent("SISTEMA", String.format("Estado al detener: READY=%d, RUNNING=%d, BLOCKED=%d, SUSPENDED=%d, NEW=%d",
+                ready, running, blocked, suspended, newState), Color.BLUE);
+
+        // Listar procesos que nunca ejecutaron
+        if (newState > 0) {
+            StringBuilder neverExecuted = new StringBuilder("Procesos que nunca ejecutaron: ");
+            for (int i = 0; i < allProcesses.getSize(); i++) {
+                Process p = allProcesses.get(i);
+                if (p.getState() == ProcessState.NEW) {
+                    neverExecuted.append(String.format("P%d (AT=%d) ", p.getPid(), p.getArrivalTime()));
+                }
+            }
+            logEvent("ADVERTENCIA", neverExecuted.toString(), new Color(255, 152, 0));
+        }
+
         logEvent("SISTEMA", "═══════════════════════════════════════", Color.BLACK);
 
-        mostrarResultadosFinales();
+        sincronizarTablaResultados();
+
+        // Solo mostrar resultados si hay procesos terminados
+        if (terminatedProcesses.getSize() > 0) {
+            mostrarResultadosFinales();
+        }
+    }
+
+    // Sincronizar tabla con procesos terminados
+    private void sincronizarTablaResultados() {
+        // Limpiar tabla actual
+        clearResultsTable();
+
+        // Agregar TODOS los procesos terminados a la tabla
+        for (int i = 0; i < terminatedProcesses.getSize(); i++) {
+            Process p = terminatedProcesses.get(i);
+            addResultToTable(p);
+        }
+
+        logEvent("TABLA", String.format("Tabla actualizada: %d procesos agregados", terminatedProcesses.getSize()),
+                Color.BLUE);
     }
 
     private void reiniciarSimulacion() {
@@ -692,7 +815,6 @@ public class Ventana extends javax.swing.JFrame {
 
         PausarButton.setText("⏸ Pausar");
 
-        // ✅ NUEVO: Limpiar gráficos
         clearCharts();
 
         clearLog();
@@ -726,30 +848,37 @@ public class Ventana extends javax.swing.JFrame {
     // ===== CICLO DE SIMULACIÓN CON DEBUGGING =====
 
     private void ejecutarCiclo() {
-        // ✅ NUEVO: Detectar si es MLFQ
+        // Detectar si es MLFQ
         boolean isMLFQ = (scheduler instanceof MultilevelFeedbackQueueScheduler);
 
-        // ✅ 1. Verificar llegadas ANTES de incrementar
-        for (int i = 0; i < allProcesses.getSize(); i++) {
+        // Crear una copia temporal para evitar problemas de concurrencia
+        int currentSize = allProcesses.getSize();
+        for (int i = 0; i < currentSize; i++) {
             Process p = allProcesses.get(i);
-            if (p.getArrivalTime() == globalClock && p.getState() == ProcessState.NEW) {
-                showKernelModeForEvent("Proceso P" + p.getPid() + " llegando al sistema", () -> {
-                    p.setState(ProcessState.READY);
-                    scheduler.addProcess(p);
 
-                    // ✅ NUEVO: Log de llegada
+            if (p.getArrivalTime() == globalClock && p.getState() == ProcessState.NEW) {
+                final Process arrivingProcess = p;
+                showKernelModeForEvent("Proceso P" + p.getPid() + " llegando al sistema", () -> {
+                    arrivingProcess.setState(ProcessState.READY);
+                    scheduler.addProcess(arrivingProcess);
+
+                    // Log de llegada
                     logEvent("LLEGADA", String.format("P%d llegó al sistema (AT=%d, BT=%d)",
-                            p.getPid(), p.getArrivalTime(), p.getBurstTime()), new Color(0, 150, 136));
-                    logSchedulerDecision(String.format("P%d agregado a cola READY", p.getPid()));
+                            arrivingProcess.getPid(), arrivingProcess.getArrivalTime(), arrivingProcess.getBurstTime()),
+                            new Color(0, 150, 136));
+                    logSchedulerDecision(String.format("P%d agregado a cola READY", arrivingProcess.getPid()));
 
                     System.out.println(
-                            "🕐 Ciclo " + globalClock + ": P" + p.getPid() + " LLEGÓ (AT=" + p.getArrivalTime() + ")");
+                            "🕐 Ciclo " + globalClock + ": P" + arrivingProcess.getPid() + " LLEGÓ (AT="
+                                    + arrivingProcess.getArrivalTime() + ")");
                 });
             }
         }
 
-        // ✅ 2. Incrementar ciclo
+        // Incrementar ciclo
         globalClock++;
+
+        checkMemoryPressure();
 
         boolean shouldLog = (globalClock % 50 == 0);
 
@@ -758,15 +887,16 @@ public class Ventana extends javax.swing.JFrame {
             System.out.println("🕐 CICLO " + globalClock);
             System.out.println("=".repeat(60));
             System.out
-                    .println("📊 Progreso: " + terminatedProcesses.getSize() + "/" + allProcesses.getSize() + " terminados");
+                    .println("Progreso: " + terminatedProcesses.getSize() + "/" + allProcesses.getSize()
+                            + " terminados");
         }
 
-        // ✅ NUEVO: Si es MLFQ, procesar su lógica interna de ciclo
+        // Si es MLFQ, procesar su lógica interna de ciclo
         if (isMLFQ) {
             ((MultilevelFeedbackQueueScheduler) scheduler).processSingleCycle(globalClock);
         }
 
-        // ✅ 3. Procesar I/O (solo si NO es MLFQ, porque MLFQ lo hace internamente)
+        // Procesar I/O (solo si NO es MLFQ, porque MLFQ lo hace internamente)
         if (!isMLFQ) {
             int blockedCount = ioManager.getBlockedCount();
             Queue<Process> unblocked = ioManager.processIOCycle();
@@ -779,7 +909,7 @@ public class Ventana extends javax.swing.JFrame {
                     unblockedProcess.setState(ProcessState.READY);
                     scheduler.addProcess(unblockedProcess);
 
-                    // ✅ NUEVO: Log de I/O completado
+                    // Log de I/O completado
                     logIOActivity(String.format("P%d completó operación I/O", unblockedProcess.getPid()));
                     logProcessStateChange(unblockedProcess.getPid(), "BLOCKED", "READY");
                     logSchedulerDecision(String.format("P%d devuelto a cola READY", unblockedProcess.getPid()));
@@ -793,9 +923,9 @@ public class Ventana extends javax.swing.JFrame {
             if (shouldLog && blockedCount > 0) {
                 System.out.println("  💾 I/O: " + blockedCount + " bloqueados");
             }
-        } // ✅ CIERRE DEL if (!isMLFQ) - ESTA LLAVE FALTABA
+        }
 
-        // ✅ 4. Seleccionar proceso
+        // Seleccionar proceso
         Process currentProcess = cpu.getCurrentProcess();
 
         if (currentProcess == null) {
@@ -812,7 +942,6 @@ public class Ventana extends javax.swing.JFrame {
                                 cpu.assignProcess(selectedProcess);
                                 selectedProcess.setState(ProcessState.RUNNING);
 
-                                // ✅ NUEVO: Log de context switch
                                 logKernelMode(String.format("Context Switch: P%d → P%d",
                                         lastExecutedProcess.getPid(), selectedProcess.getPid()));
                                 logSchedulerDecision(String.format("CPU asignado a P%d (RT=%d)",
@@ -833,7 +962,6 @@ public class Ventana extends javax.swing.JFrame {
                 nextProcess.setState(ProcessState.RUNNING);
                 lastExecutedProcess = nextProcess;
 
-                // ✅ NUEVO: Log de asignación inicial
                 logSchedulerDecision(String.format("Procesador selecciona P%d (RT=%d)",
                         nextProcess.getPid(), nextProcess.getRemainingTime()));
                 logCPUActivity(String.format("P%d asignado a CPU", nextProcess.getPid()));
@@ -847,7 +975,6 @@ public class Ventana extends javax.swing.JFrame {
                 cpu.tickIdle();
                 lastExecutedProcess = null;
 
-                // ✅ NUEVO: Log de CPU idle (solo cada 10 ciclos para no saturar)
                 if (globalClock % 10 == 0) {
                     logCPUActivity("CPU en estado IDLE - No hay procesos listos");
                 }
@@ -860,7 +987,6 @@ public class Ventana extends javax.swing.JFrame {
             }
         }
 
-        // ✅ 5. EJECUTAR proceso
         currentProcess = cpu.getCurrentProcess();
 
         if (currentProcess != null) {
@@ -877,7 +1003,6 @@ public class Ventana extends javax.swing.JFrame {
             handleProcessStateChange(currentProcess, needsIO, shouldLog, isMLFQ);
         }
 
-        // ✅ Incrementar Waiting Time (solo si NO es MLFQ)
         if (!isMLFQ) {
             for (int i = 0; i < allProcesses.getSize(); i++) {
                 Process p = allProcesses.get(i);
@@ -904,7 +1029,88 @@ public class Ventana extends javax.swing.JFrame {
         checkSimulationEnd();
     }
 
-    // ✅ CORREGIDO: Ejecutar acción inmediatamente, delay solo para UI
+    private void checkMemoryPressure() {
+        int maxProcessesInMemory = (Integer) ProcesosEnMemoriaSpinner.getValue();
+
+        int processesInMemory = 0;
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            if (p.getState() == ProcessState.READY ||
+                    p.getState() == ProcessState.RUNNING) {
+                processesInMemory++;
+            }
+        }
+
+        final int memoryCount = processesInMemory;
+
+        int suspendThreshold = maxProcessesInMemory * 2;
+
+        // SUSPENDER solo si hay sobrecarga EXTREMA
+        if (processesInMemory > suspendThreshold) {
+            Process toSuspend = findLowestPriorityReadyProcess();
+
+            if (toSuspend != null) {
+                showKernelModeForEvent("Suspendiendo P" + toSuspend.getPid() + " por falta de memoria", () -> {
+                    ProcessState previousState = toSuspend.getState();
+                    toSuspend.setState(ProcessState.SUSPENDED);
+
+                    // Si estaba en CPU, liberarlo
+                    if (previousState == ProcessState.RUNNING) {
+                        cpu.releaseProcess();
+                        lastExecutedProcess = null;
+                    }
+
+                    logKernelMode(String.format("P%d suspendido por presión de memoria (%d/%d en RAM)",
+                            toSuspend.getPid(), memoryCount, maxProcessesInMemory));
+                    logProcessStateChange(toSuspend.getPid(), previousState.toString(), "SUSPENDED");
+                });
+            }
+        }
+
+        else if (processesInMemory < maxProcessesInMemory / 2) {
+            Process toResume = findSuspendedProcess();
+
+            if (toResume != null) {
+                showKernelModeForEvent("Reanudando P" + toResume.getPid() + " desde suspensión", () -> {
+                    toResume.setState(ProcessState.READY);
+                    scheduler.addProcess(toResume);
+
+                    logKernelMode(String.format("P%d reanudado desde suspensión", toResume.getPid()));
+                    logProcessStateChange(toResume.getPid(), "SUSPENDED", "READY");
+                });
+            }
+        }
+    }
+
+    private Process findLowestPriorityReadyProcess() {
+        Process lowest = null;
+        int lowestPriority = -1;
+
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+
+            // Solo considerar procesos READY
+            if (p.getState() == ProcessState.READY) {
+                if (lowest == null || p.getPriority() > lowestPriority) {
+                    lowest = p;
+                    lowestPriority = p.getPriority();
+                }
+            }
+        }
+
+        return lowest;
+    }
+
+    private Process findSuspendedProcess() {
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            if (p.getState() == ProcessState.SUSPENDED) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     private void showKernelModeForEvent(String eventDescription, Runnable action) {
         // Pausar simulación
         if (simulationTimer != null) {
@@ -915,10 +1121,10 @@ public class Ventana extends javax.swing.JFrame {
         updateUIWithMode("Kernel");
         System.out.println("  🔧 Modo KERNEL: " + eventDescription);
 
-        // ✅ EJECUTAR LA ACCIÓN INMEDIATAMENTE (cambiar estado del proceso)
+        // EJECUTAR LA ACCIÓN INMEDIATAMENTE (cambiar estado del proceso)
         action.run();
 
-        // ✅ Timer SOLO para mantener visible el modo Kernel
+        // Timer SOLO para mantener visible el modo Kernel
         Timer kernelTimer = new Timer(200, evt -> {
             // Volver a modo User
             updateUIWithMode("User");
@@ -933,7 +1139,7 @@ public class Ventana extends javax.swing.JFrame {
         kernelTimer.start();
     }
 
-    // ✅ NUEVO: Ejecutar proceso después de context switch
+    // Ejecutar proceso después de context switch
     private void executeProcessAfterKernel(Process process, boolean shouldLog, boolean isMLFQ) {
         Timer executeTimer = new Timer(100, evt -> {
             updateUIWithMode("User");
@@ -964,7 +1170,7 @@ public class Ventana extends javax.swing.JFrame {
         executeTimer.start();
     }
 
-    // ✅ CORREGIDO: Manejar cambios de estado según el algoritmo
+    // Manejar cambios de estado según el algoritmo
     private void handleProcessStateChange(Process process, boolean needsIO, boolean shouldLog, boolean isMLFQ) {
         if (process.isFinished()) {
             showKernelModeForEvent("Proceso P" + process.getPid() + " terminando", () -> {
@@ -976,7 +1182,6 @@ public class Ventana extends javax.swing.JFrame {
                 cpu.releaseProcess();
                 lastExecutedProcess = null;
 
-                // ✅ NUEVO: Log de terminación
                 logKernelMode(String.format("P%d finalizó su ejecución", process.getPid()));
                 logProcessStateChange(process.getPid(), "RUNNING", "TERMINATED");
                 logEvent("MÉTRICAS", String.format("P%d - TAT=%d, WT=%d, RT=%d",
@@ -990,14 +1195,13 @@ public class Ventana extends javax.swing.JFrame {
                 }
 
                 if (shouldLog) {
-                    System.out.println("  ✅ P" + process.getPid() + " TERMINADO en ciclo " + globalClock);
+                    System.out.println("   P" + process.getPid() + " TERMINADO en ciclo " + globalClock);
                 }
             });
         } else if (needsIO) {
             showKernelModeForEvent("Proceso P" + process.getPid() + " bloqueándose por I/O", () -> {
                 process.setState(ProcessState.BLOCKED);
 
-                // ✅ NUEVO: Log de bloqueo
                 logKernelMode(String.format("P%d requiere operación I/O", process.getPid()));
                 logProcessStateChange(process.getPid(), "RUNNING", "BLOCKED");
                 logIOActivity(String.format("P%d bloqueado por I/O (duración: %d ciclos)",
@@ -1020,24 +1224,42 @@ public class Ventana extends javax.swing.JFrame {
         }
     }
 
-    // ✅ NUEVO: Método auxiliar para verificar fin de simulación
+    // Método auxiliar para verificar fin de simulación
     private void checkSimulationEnd() {
-        int processosQueLlegaron = 0;
-        for (int i = 0; i < allProcesses.getSize(); i++) {
-            if (allProcesses.get(i).getState() != ProcessState.NEW) {
-                processosQueLlegaron++;
-            }
-        }
-
-        if (processosQueLlegaron == allProcesses.getSize() && terminatedProcesses.getSize() >= allProcesses.getSize()) {
-            System.out.println("\n🎉 TODOS LOS PROCESOS TERMINADOS EN CICLO " + globalClock);
-            detenerSimulacion();
-        }
 
         if (globalClock >= 10000) {
             System.out.println("\n⚠️ LÍMITE DE CICLOS ALCANZADO (10,000)");
-            System.out.println("   Procesos sin terminar: " + (allProcesses.getSize() - terminatedProcesses.getSize()));
+            System.out
+                    .println("   Procesos terminados: " + terminatedProcesses.getSize() + "/" + allProcesses.getSize());
+
+            logEvent("SISTEMA", "═══════════════════════════════════════", Color.RED);
+            logEvent("SISTEMA", "LÍMITE DE CICLOS ALCANZADO", Color.RED);
+            logEvent("SISTEMA",
+                    String.format("Terminados: %d/%d", terminatedProcesses.getSize(), allProcesses.getSize()),
+                    Color.ORANGE);
+            logEvent("SISTEMA", "═══════════════════════════════════════", Color.RED);
+
             detenerSimulacion();
+        }
+
+        // NUEVO: Solo mostrar aviso cada 100 ciclos si todos terminaron pero sigue
+        // corriendo
+        if (globalClock % 100 == 0) {
+            int processosQueLlegaron = 0;
+            for (int i = 0; i < allProcesses.getSize(); i++) {
+                if (allProcesses.get(i).getState() != ProcessState.NEW) {
+                    processosQueLlegaron++;
+                }
+            }
+
+            if (processosQueLlegaron == allProcesses.getSize() &&
+                    terminatedProcesses.getSize() >= allProcesses.getSize()) {
+                logEvent("INFO",
+                        String.format(
+                                "Todos los procesos terminados (Ciclo %d). Esperando nuevos procesos o botón Detener.",
+                                globalClock),
+                        new Color(0, 150, 136));
+            }
         }
     }
 
@@ -1058,7 +1280,7 @@ public class Ventana extends javax.swing.JFrame {
         Process current = cpu.getCurrentProcess();
 
         if (current != null) {
-            // ✅ HAY PROCESO EN CPU
+
             ProcesoResponseText.setText(current.getName());
             PIDResponseText.setText(String.valueOf(current.getPid()));
             PCResponseText.setText(String.valueOf(current.getProgramCounter()));
@@ -1066,7 +1288,7 @@ public class Ventana extends javax.swing.JFrame {
             TotalResponseText.setText(current.getRemainingTime() + "/" + current.getBurstTime());
             CicloActualResponseText.setText(String.valueOf(globalClock));
         } else {
-            // ✅ NO HAY PROCESO EN CPU, pero seguimos mostrando info
+
             ProcesoResponseText.setText("--");
             PIDResponseText.setText("--");
             PCResponseText.setText("--");
@@ -1075,10 +1297,8 @@ public class Ventana extends javax.swing.JFrame {
             CicloActualResponseText.setText(String.valueOf(globalClock));
         }
 
-        // ✅ ACTUALIZAR MODO (User o Kernel únicamente)
         ModoResponseText.setText(mode);
 
-        // ✅ Colores según el modo (SOLO User y Kernel)
         switch (mode) {
             case "User":
                 ModoResponseText.setForeground(new Color(76, 175, 80)); // Verde
@@ -1105,7 +1325,6 @@ public class Ventana extends javax.swing.JFrame {
         StringBuilder terminados = new StringBuilder();
         StringBuilder suspendidos = new StringBuilder();
 
-        // ✅ CORREGIDO: Usar get(index) en lugar de getHead()
         for (int i = 0; i < allProcesses.getSize(); i++) {
             Process p = allProcesses.get(i);
             String info = String.format("P%d (%s) - RT:%d\n",
@@ -1149,7 +1368,7 @@ public class Ventana extends javax.swing.JFrame {
         boolean isPriority = (scheduler instanceof PriorityScheduler);
 
         if (isMLFQ) {
-            // ✅ MULTILEVEL FEEDBACK QUEUE
+            // MULTILEVEL FEEDBACK QUEUE
             MultilevelFeedbackQueueScheduler mlfq = (MultilevelFeedbackQueueScheduler) scheduler;
 
             detalle.append("┌─ COLA NIVEL 0 (Quantum: ").append(mlfq.getQuantums()[0]).append(") ─┐\n");
@@ -1171,7 +1390,7 @@ public class Ventana extends javax.swing.JFrame {
             appendQueueDetails(detalle, mlfq.getBlockedQueue());
 
         } else {
-            // ✅ ALGORITMOS ESTÁNDAR (FCFS, SJF, SRTF, RR, Priority, HRRN)
+            // ALGORITMOS ESTÁNDAR (FCFS, SJF, SRTF, RR, Priority, HRRN)
 
             detalle.append("─ COLA LISTOS ────────────────────────\n");
             Lista<Process> readyQueue = getReadyQueueFromScheduler();
@@ -1188,9 +1407,9 @@ public class Ventana extends javax.swing.JFrame {
             // Información adicional según algoritmo
             if (isRR) {
                 RoundRobinScheduler rr = (RoundRobinScheduler) scheduler;
-                detalle.append("\n📊 Quantum: ").append(rr.getQuantum()).append(" ciclos\n");
+                detalle.append("\nQuantum: ").append(rr.getQuantum()).append(" ciclos\n");
             } else if (isPriority) {
-                detalle.append("\n📊 Aging activado cada 10 ciclos\n");
+                detalle.append("\nAging activado cada 10 ciclos\n");
             }
         }
 
@@ -1397,6 +1616,18 @@ public class Ventana extends javax.swing.JFrame {
             return;
         }
 
+        // ✅ NUEVO: Asegurar que la tabla esté sincronizada
+        sincronizarTablaResultados();
+
+        // ✅ NUEVO: Contar procesos que ejecutaron (salieron de NEW)
+        int processesExecuted = 0;
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            if (p.getState() != ProcessState.NEW) {
+                processesExecuted++;
+            }
+        }
+
         double avgWT = Statistics.calculateAverageWaitingTime(terminatedProcesses);
         double avgTAT = Statistics.calculateAverageTurnaroundTime(terminatedProcesses);
         double avgRT = Statistics.calculateAverageResponseTime(terminatedProcesses);
@@ -1405,14 +1636,18 @@ public class Ventana extends javax.swing.JFrame {
         String report = String.format(
                 "===== SIMULACIÓN FINALIZADA =====\n\n" +
                         "Algoritmo: %s\n" +
+                        "Procesos en el sistema: %d\n" +
+                        "Procesos que ejecutaron: %d\n" +
                         "Procesos terminados: %d\n" +
                         "Ciclos totales: %d\n\n" +
-                        "===== MÉTRICAS =====\n" +
+                        "===== MÉTRICAS (solo procesos terminados) =====\n" +
                         "Tiempo de Espera Promedio: %.2f\n" +
                         "Tiempo de Retorno Promedio: %.2f\n" +
                         "Tiempo de Respuesta Promedio: %.2f\n" +
                         "Utilización de CPU: %.2f%%\n",
                 AlgorithmSelectorComboBox.getSelectedItem(),
+                allProcesses.getSize(),
+                processesExecuted,
                 terminatedProcesses.getSize(),
                 globalClock,
                 avgWT, avgTAT, avgRT, cpuUtil);
@@ -1634,7 +1869,8 @@ public class Ventana extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         SimuladorCPUText = new javax.swing.JLabel();
@@ -1783,7 +2019,8 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(Nivel3Spinner);
         Nivel3Spinner.setBounds(494, 66, 42, 22);
 
-        AlgorithmSelectorComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "HRRN", "Feedback", "RoundRobin", "SJF", "SRTF" }));
+        AlgorithmSelectorComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(
+                new String[] { "FCFS", "HRRN", "Feedback", "RoundRobin", "SJF", "SRTF" }));
         AlgorithmSelectorComboBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 AlgorithmSelectorComboBoxActionPerformed(evt);
@@ -1840,7 +2077,8 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(TipoText);
         TipoText.setBounds(6, 461, 120, 16);
 
-        TipoComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CPU Bound", "I/O Bound", "Mixto" }));
+        TipoComboBox
+                .setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CPU Bound", "I/O Bound", "Mixto" }));
         TipoComboBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 TipoComboBoxActionPerformed(evt);
@@ -1899,61 +2137,75 @@ public class Ventana extends javax.swing.JFrame {
         javax.swing.GroupLayout CPUPanelLayout = new javax.swing.GroupLayout(CPUPanel);
         CPUPanel.setLayout(CPUPanelLayout);
         CPUPanelLayout.setHorizontalGroup(
-            CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(CPUPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ProcesoText)
-                    .addComponent(PIDText)
-                    .addComponent(PCText)
-                    .addComponent(MARText)
-                    .addComponent(TotalText)
-                    .addComponent(ModoText)
-                    .addComponent(CicloActualText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 79, Short.MAX_VALUE)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ProcesoResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(PIDResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(PCResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(MARResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(TotalResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(CicloActualResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(ModoResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
-        );
+                CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(CPUPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ProcesoText)
+                                        .addComponent(PIDText)
+                                        .addComponent(PCText)
+                                        .addComponent(MARText)
+                                        .addComponent(TotalText)
+                                        .addComponent(ModoText)
+                                        .addComponent(CicloActualText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 79,
+                                        Short.MAX_VALUE)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ProcesoResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(PIDResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(PCResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(MARResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(TotalResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(CicloActualResponseText,
+                                                javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(ModoResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap()));
         CPUPanelLayout.setVerticalGroup(
-            CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(CPUPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ProcesoText)
-                    .addComponent(ProcesoResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(PIDText)
-                    .addComponent(PIDResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(PCText)
-                    .addComponent(PCResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(MARText)
-                    .addComponent(MARResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(TotalText)
-                    .addComponent(TotalResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(CicloActualResponseText)
-                    .addComponent(CicloActualText, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ModoText)
-                    .addComponent(ModoResponseText))
-                .addContainerGap(16, Short.MAX_VALUE))
-        );
+                CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(CPUPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(ProcesoText)
+                                        .addComponent(ProcesoResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(PIDText)
+                                        .addComponent(PIDResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(PCText)
+                                        .addComponent(PCResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(MARText)
+                                        .addComponent(MARResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(TotalText)
+                                        .addComponent(TotalResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(CicloActualResponseText)
+                                        .addComponent(CicloActualText, javax.swing.GroupLayout.Alignment.TRAILING))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(ModoText)
+                                        .addComponent(ModoResponseText))
+                                .addContainerGap(16, Short.MAX_VALUE)));
 
         getContentPane().add(CPUPanel);
         CPUPanel.setBounds(10, 630, 240, 172);
@@ -1990,63 +2242,69 @@ public class Ventana extends javax.swing.JFrame {
         javax.swing.GroupLayout EstadosDeProcesosPanelLayout = new javax.swing.GroupLayout(EstadosDeProcesosPanel);
         EstadosDeProcesosPanel.setLayout(EstadosDeProcesosPanelLayout);
         EstadosDeProcesosPanelLayout.setHorizontalGroup(
-            EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ActivosScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 269, Short.MAX_VALUE)
-                    .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
-                        .addGroup(EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(EstadosDeProcesosText)
-                            .addComponent(ActivosText)
-                            .addComponent(BloqueadosText)
-                            .addComponent(TerminadosTExt)
-                            .addComponent(SuspendidosText))
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(BloqueadosScrollPane)
-                    .addComponent(TerminadosScrollPane)
-                    .addComponent(SuspendidosScrollPane))
-                .addContainerGap())
-        );
+                EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(EstadosDeProcesosPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ActivosScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 269,
+                                                Short.MAX_VALUE)
+                                        .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
+                                                .addGroup(EstadosDeProcesosPanelLayout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(EstadosDeProcesosText)
+                                                        .addComponent(ActivosText)
+                                                        .addComponent(BloqueadosText)
+                                                        .addComponent(TerminadosTExt)
+                                                        .addComponent(SuspendidosText))
+                                                .addGap(0, 0, Short.MAX_VALUE))
+                                        .addComponent(BloqueadosScrollPane)
+                                        .addComponent(TerminadosScrollPane)
+                                        .addComponent(SuspendidosScrollPane))
+                                .addContainerGap()));
         EstadosDeProcesosPanelLayout.setVerticalGroup(
-            EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, EstadosDeProcesosPanelLayout.createSequentialGroup()
-                .addContainerGap(12, Short.MAX_VALUE)
-                .addComponent(EstadosDeProcesosText)
-                .addGap(17, 17, 17)
-                .addComponent(ActivosText)
-                .addGap(5, 5, 5)
-                .addComponent(ActivosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(BloqueadosText)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(BloqueadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(TerminadosTExt)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(TerminadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(SuspendidosText)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(SuspendidosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, EstadosDeProcesosPanelLayout
+                                .createSequentialGroup()
+                                .addContainerGap(12, Short.MAX_VALUE)
+                                .addComponent(EstadosDeProcesosText)
+                                .addGap(17, 17, 17)
+                                .addComponent(ActivosText)
+                                .addGap(5, 5, 5)
+                                .addComponent(ActivosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(BloqueadosText)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(BloqueadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(TerminadosTExt)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(TerminadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(SuspendidosText)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(SuspendidosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
 
         getContentPane().add(EstadosDeProcesosPanel);
         EstadosDeProcesosPanel.setBounds(267, 282, 283, 520);
 
-        MetricasRendimientoSistemaPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        MetricasRendimientoSistemaPanel
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        javax.swing.GroupLayout MetricasRendimientoSistemaPanelLayout = new javax.swing.GroupLayout(MetricasRendimientoSistemaPanel);
+        javax.swing.GroupLayout MetricasRendimientoSistemaPanelLayout = new javax.swing.GroupLayout(
+                MetricasRendimientoSistemaPanel);
         MetricasRendimientoSistemaPanel.setLayout(MetricasRendimientoSistemaPanelLayout);
         MetricasRendimientoSistemaPanelLayout.setHorizontalGroup(
-            MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 478, Short.MAX_VALUE)
-        );
+                MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 478, Short.MAX_VALUE));
         MetricasRendimientoSistemaPanelLayout.setVerticalGroup(
-            MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 218, Short.MAX_VALUE)
-        );
+                MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 218, Short.MAX_VALUE));
 
         getContentPane().add(MetricasRendimientoSistemaPanel);
         MetricasRendimientoSistemaPanel.setBounds(568, 60, 480, 220);
@@ -2061,18 +2319,18 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(LineaTiempoEjecucionProcesosText);
         LineaTiempoEjecucionProcesosText.setBounds(568, 292, 480, 16);
 
-        LineaTiempoEjecucionProcesosPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        LineaTiempoEjecucionProcesosPane
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        javax.swing.GroupLayout LineaTiempoEjecucionProcesosPaneLayout = new javax.swing.GroupLayout(LineaTiempoEjecucionProcesosPane);
+        javax.swing.GroupLayout LineaTiempoEjecucionProcesosPaneLayout = new javax.swing.GroupLayout(
+                LineaTiempoEjecucionProcesosPane);
         LineaTiempoEjecucionProcesosPane.setLayout(LineaTiempoEjecucionProcesosPaneLayout);
         LineaTiempoEjecucionProcesosPaneLayout.setHorizontalGroup(
-            LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 478, Short.MAX_VALUE)
-        );
+                LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 478, Short.MAX_VALUE));
         LineaTiempoEjecucionProcesosPaneLayout.setVerticalGroup(
-            LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 218, Short.MAX_VALUE)
-        );
+                LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 218, Short.MAX_VALUE));
 
         getContentPane().add(LineaTiempoEjecucionProcesosPane);
         LineaTiempoEjecucionProcesosPane.setBounds(568, 314, 480, 220);
@@ -2082,19 +2340,19 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(ResultadosSimulacionText);
         ResultadosSimulacionText.setBounds(568, 550, 480, 16);
 
-        ResultadosDeSimulacionScrollPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        ResultadosDeSimulacionScrollPane
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
         ResultadosDeSimulacionTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null}
-            },
-            new String [] {
-                "PID", "Nombre", "AT", "BT", "CT", "TAT", "WT", "RT"
-            }
-        ));
+                new Object[][] {
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null }
+                },
+                new String[] {
+                        "PID", "Nombre", "AT", "BT", "CT", "TAT", "WT", "RT"
+                }));
         ResultadosDeSimulacionScrollPane.setViewportView(ResultadosDeSimulacionTable);
 
         getContentPane().add(ResultadosDeSimulacionScrollPane);
@@ -2271,26 +2529,23 @@ public class Ventana extends javax.swing.JFrame {
         Random rand = new Random();
         int count = 15;
 
-        System.out.println("\n🔧 GENERANDO " + count + " PROCESOS ALEATORIOS..."); // 🐛 LOG
+        System.out.println("\n🔧 GENERANDO " + count + " PROCESOS ALEATORIOS...");
+
+        boolean isRunning = (simulationTimer != null && simulationTimer.isRunning());
+        int baseArrivalTime = isRunning ? globalClock + 1 : 0;
 
         for (int i = 0; i < count; i++) {
-            // ✅ ARRIVAL TIME: 0-5 (TODOS llegan en los primeros 5 ciclos)
-            int arrivalTime = rand.nextInt(6); // 0, 1, 2, 3, 4, 5
+            int arrivalTime = baseArrivalTime + rand.nextInt(6); // Próximos 1-6 ciclos
 
-            // ✅ BURST TIME: 5-19 (procesos más cortos)
-            int burstTime = 5 + rand.nextInt(15); // 5-19
-
-            // ✅ I/O más controlado
-            int ioCycle = rand.nextInt(10) + 5; // 5-14 (no tan frecuente)
-            int ioDuration = rand.nextInt(3) + 1; // 1-3 (más corto)
-
+            int burstTime = 5 + rand.nextInt(15);
+            int ioCycle = rand.nextInt(10) + 5;
+            int ioDuration = rand.nextInt(3) + 1;
             int priority = rand.nextInt(5);
             int memorySize = 1024 + rand.nextInt(3) * 512;
 
             ProcessType[] types = ProcessType.values();
             ProcessType tipo = types[rand.nextInt(types.length)];
 
-            // ✅ PID correcto
             int currentPID = nextPID;
             nextPID++;
 
@@ -2307,8 +2562,7 @@ public class Ventana extends javax.swing.JFrame {
 
             allProcesses.insertBegin(process);
 
-            // 🐛 LOG de cada proceso generado
-            System.out.printf("  ✅ P%d: AT=%d, BT=%d, IO_Cycle=%d, IO_Dur=%d\n",
+            System.out.printf("  P%d: AT=%d, BT=%d, IO_Cycle=%d, IO_Dur=%d\n",
                     currentPID, arrivalTime, burstTime, ioCycle, ioDuration);
         }
 
@@ -2316,18 +2570,27 @@ public class Ventana extends javax.swing.JFrame {
 
         JOptionPane.showMessageDialog(this,
                 count + " procesos aleatorios generados\n" +
-                        "✅ Arrival Times: 0-5 ciclos (TODOS llegan pronto)\n" +
-                        "✅ Burst Times: 5-19 ciclos\n" +
-                        "✅ I/O Cycle: 5-14 ciclos\n" +
-                        "✅ I/O Duration: 1-3 ciclos",
+                        (isRunning
+                                ? "Arrival Times: Ciclo " + baseArrivalTime + " - " + (baseArrivalTime + 5)
+                                        + " (llegarán automáticamente)\n"
+                                : "Arrival Times: 0-5 ciclos (esperando inicio)\n")
+                        +
+                        "Burst Times: 5-19 ciclos\n" +
+                        "I/O Cycle: 5-14 ciclos\n" +
+                        "I/O Duration: 1-3 ciclos",
                 "Procesos Generados",
                 JOptionPane.INFORMATION_MESSAGE);
+
+        if (isRunning) {
+            logEvent("NUEVO",
+                    String.format("%d procesos programados (AT: %d-%d)", count, baseArrivalTime, baseArrivalTime + 5),
+                    new Color(0, 150, 136));
+        }
     }
 
     // ===== MÉTODO PARA CREAR UN PROCESO INDIVIDUAL =====
     private void crearProceso() {
         try {
-            // ✅ CORREGIDO: Obtener PID antes de incrementar
             int currentPID = nextPID;
             nextPID++;
 
@@ -2367,16 +2630,37 @@ public class Ventana extends javax.swing.JFrame {
 
             allProcesses.insertBegin(process);
 
+            boolean isRunning = (simulationTimer != null && simulationTimer.isRunning());
+
+            if (isRunning) {
+                // Solo loguear que fue programado
+                if (arrivalTime <= globalClock) {
+                    logEvent("NUEVO",
+                            String.format("P%d agregado (llegará en ciclo %d = AHORA)", process.getPid(), arrivalTime),
+                            new Color(0, 150, 136));
+                } else {
+                    logEvent("NUEVO",
+                            String.format("P%d programado para llegar en ciclo %d", process.getPid(), arrivalTime),
+                            new Color(0, 150, 136));
+                }
+            }
+
             JOptionPane.showMessageDialog(this,
                     "Proceso '" + name + "' creado exitosamente\n" +
                             "PID: " + process.getPid() + "\n" +
                             "Tipo: " + tipo + "\n" +
-                            "Burst Time: " + burstTime,
+                            "Burst Time: " + burstTime + "\n" +
+                            "Arrival Time: " + arrivalTime + "\n" +
+                            (isRunning
+                                    ? (arrivalTime <= globalClock ? "Estado: Llegará en el próximo ciclo"
+                                            : "Estado: Programado para ciclo " + arrivalTime)
+                                    : "Estado: Esperando inicio de simulación"),
                     "Proceso Creado",
                     JOptionPane.INFORMATION_MESSAGE);
 
+            // Limpiar campos
             NombreTextField.setText("");
-            LlegadaCicloSpinner.setValue(0);
+            LlegadaCicloSpinner.setValue(isRunning ? globalClock + 1 : 0);
             NroInstruccionesSpinner.setValue(10);
             CicloDeIOSpinner.setValue(0);
             DuracionDeIOSpinner.setValue(0);
