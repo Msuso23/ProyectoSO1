@@ -13,16 +13,7 @@ public class PriorityQueue {
         this.list = new Lista<>();
     }
 
-    /**
-     * Agrega un proceso manteniendo el orden de prioridad
-     * Menor valor de prioridad = mayor prioridad
-     */
-    
-
-    /**
-     * Remueve y retorna el proceso con mayor prioridad
-     */
-    public Process dequeue() {
+     public Process dequeue() {
         if (isEmpty()) {
             throw new IllegalStateException("La cola está vacía");
         }

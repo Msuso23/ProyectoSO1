@@ -8,7 +8,7 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo Shortest Job First (SJF) - No Expulsivo con soporte I/O
+ * Algoritmo Shortest Job First (SJF) 
  * Selecciona el proceso con el menor tiempo de ráfaga
  */
 public class SJFScheduler implements Scheduler {
@@ -30,11 +30,9 @@ public class SJFScheduler implements Scheduler {
 
     @Override
     public void addProcess(Process process) {
-        // ✅ CAMBIO: Agregar DIRECTAMENTE a readyQueue
         process.setState(ProcessState.READY);
         readyQueue.insertBegin(process);
 
-        // También agregar a allProcesses
         allProcesses.insertBegin(process);
     }
 
@@ -48,7 +46,6 @@ public class SJFScheduler implements Scheduler {
             return null;
         }
 
-        // Buscar el proceso con menor burst time
         int shortestIndex = 0;
         int shortestBurst = readyQueue.get(0).getBurstTime();
 
@@ -67,11 +64,9 @@ public class SJFScheduler implements Scheduler {
         int currentTime = 0;
         int processIndex = 0;
 
-        // Ordenar procesos por tiempo de llegada
         sortProcessesByArrivalTime();
 
         while (completedProcesses.getSize() < allProcesses.getSize() || !blockedQueue.isEmpty() || cpu.isBusy()) {
-            // 1. Agregar procesos que han llegado
             while (processIndex < allProcesses.getSize() &&
                     allProcesses.get(processIndex).getArrivalTime() <= currentTime) {
                 Process p = allProcesses.get(processIndex);
@@ -80,7 +75,6 @@ public class SJFScheduler implements Scheduler {
                 processIndex++;
             }
 
-            // 2. Procesar operaciones I/O de procesos bloqueados
             Queue<Process> readyFromIO = ioManager.processIOCycle();
             while (!readyFromIO.isEmpty()) {
                 Process p = readyFromIO.dequeue();
@@ -88,24 +82,20 @@ public class SJFScheduler implements Scheduler {
                 readyQueue.insertBegin(p);
             }
 
-            // 3. Si la CPU está ociosa, asignar proceso con menor burst time
             if (cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process nextProcess = selectNextProcess();
                 cpu.assignProcess(nextProcess);
             }
 
-            // 4. Ejecutar ciclo
             if (!cpu.isIdle()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 boolean canContinue = cpu.executeCycle(currentTime);
 
-                // Verificar si el proceso terminó
                 if (currentProcess.isFinished()) {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
                 }
-                // Verificar si necesita operación I/O
                 else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());

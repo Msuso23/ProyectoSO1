@@ -8,10 +8,7 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo SRTF (Shortest Remaining Time First) - Expulsivo con soporte I/O
- * También conocido como SPN (Shortest Process Next)
- * Selecciona el proceso con menor tiempo RESTANTE de ejecución
- * Es la versión PREEMPTIVE de SJF
+ * Algoritmo SRTF (Shortest Remaining Time First)
  */
 public class SRTFScheduler implements Scheduler {
     private Lista<Process> readyQueue;
@@ -20,7 +17,7 @@ public class SRTFScheduler implements Scheduler {
     private Lista<Process> allProcesses;
     private Lista<Process> completedProcesses;
     private IOManager ioManager;
-    private boolean preemptive = true; // SRTF es expulsivo por defecto
+    private boolean preemptive = true; 
 
     public SRTFScheduler() {
         this.readyQueue = new Lista<>();
@@ -34,8 +31,8 @@ public class SRTFScheduler implements Scheduler {
     /**
      * Constructor con opción de preempción
      * 
-     * @param preemptive true para SRTF expulsivo (normal), false para no expulsivo
-     *                   (como SJF)
+     * @param preemptive true para SRTF expulsivo, false para no expulsivo
+     *                  
      */
     public SRTFScheduler(boolean preemptive) {
         this();
@@ -44,11 +41,9 @@ public class SRTFScheduler implements Scheduler {
 
     @Override
     public void addProcess(Process process) {
-        // Agregar directamente a readyQueue
         process.setState(ProcessState.READY);
         readyQueue.insertBegin(process);
 
-        // También agregar a allProcesses
         allProcesses.insertBegin(process);
     }
 
@@ -58,14 +53,12 @@ public class SRTFScheduler implements Scheduler {
             return null;
         }
 
-        // Buscar el proceso con MENOR TIEMPO RESTANTE (remaining time)
         int shortestIndex = 0;
         int shortestRemaining = readyQueue.get(0).getRemainingTime();
 
         for (int i = 1; i < readyQueue.getSize(); i++) {
             int remaining = readyQueue.get(i).getRemainingTime();
 
-            // Si hay empate en tiempo restante, usar FCFS (menor arrival time)
             if (remaining < shortestRemaining) {
                 shortestRemaining = remaining;
                 shortestIndex = i;
@@ -84,11 +77,9 @@ public class SRTFScheduler implements Scheduler {
         int currentTime = 0;
         int processIndex = 0;
 
-        // Ordenar procesos por tiempo de llegada
         sortProcessesByArrivalTime();
 
         while (completedProcesses.getSize() < allProcesses.getSize() || !blockedQueue.isEmpty() || cpu.isBusy()) {
-            // 1. Admitir procesos que han llegado
             while (processIndex < allProcesses.getSize() &&
                     allProcesses.get(processIndex).getArrivalTime() <= currentTime) {
                 Process p = allProcesses.get(processIndex);
@@ -97,7 +88,6 @@ public class SRTFScheduler implements Scheduler {
                 processIndex++;
             }
 
-            // 2. Procesar operaciones I/O de procesos bloqueados
             Queue<Process> readyFromIO = ioManager.processIOCycle();
             while (!readyFromIO.isEmpty()) {
                 Process p = readyFromIO.dequeue();
@@ -105,15 +95,12 @@ public class SRTFScheduler implements Scheduler {
                 readyQueue.insertBegin(p);
             }
 
-            // 3. PREEMPTION: Si SRTF es expulsivo y hay un proceso más corto, expulsar
             if (preemptive && !cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 int currentRemaining = currentProcess.getRemainingTime();
 
-                // Buscar si hay algún proceso con menor tiempo restante
                 for (int i = 0; i < readyQueue.getSize(); i++) {
                     if (readyQueue.get(i).getRemainingTime() < currentRemaining) {
-                        // Expulsar proceso actual y devolverlo a ready
                         currentProcess.setState(ProcessState.READY);
                         readyQueue.insertBegin(cpu.releaseProcess());
                         break;
@@ -121,24 +108,20 @@ public class SRTFScheduler implements Scheduler {
                 }
             }
 
-            // 4. Asignar proceso si CPU está libre
             if (cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process nextProcess = selectNextProcess();
                 cpu.assignProcess(nextProcess);
             }
 
-            // 5. Ejecutar ciclo de CPU
             if (!cpu.isIdle()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 boolean canContinue = cpu.executeCycle(currentTime);
 
-                // Verificar si el proceso terminó
                 if (currentProcess.isFinished()) {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
                 }
-                // Verificar si necesita operación I/O
                 else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());

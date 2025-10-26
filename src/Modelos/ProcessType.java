@@ -4,9 +4,9 @@ package Modelos;
  * Tipo de proceso (afecta el comportamiento de I/O)
  */
 public enum ProcessType {
-    CPU_BOUND("CPU-Bound"), // Orientado a cómputo
-    IO_BOUND("I/O-Bound"), // Orientado a I/O
-    MIXED("Mixto"); // Combinación
+    CPU_BOUND("CPU-Bound"), 
+    IO_BOUND("I/O-Bound"), 
+    MIXED("Mixto"); 
 
     private final String displayName;
 

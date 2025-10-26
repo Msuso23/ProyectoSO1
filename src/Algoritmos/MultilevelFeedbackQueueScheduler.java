@@ -9,26 +9,23 @@ import Modelos.ProcessState;
 /**
  * Algoritmo Multilevel Feedback Queue (MLFQ)
  * - 4 niveles de prioridad (0 = mayor prioridad)
- * - Quantum variable por nivel: Q0=2, Q1=4, Q2=8, Q3=16
- * - Aging: después de cierto tiempo en cola, sube de prioridad
- * - Degradación: al agotar quantum, baja de prioridad
  */
 public class MultilevelFeedbackQueueScheduler implements Scheduler {
 
     // 4 colas de prioridad
-    private Queue<Process> queue0; // Prioridad más alta, quantum=2
-    private Queue<Process> queue1; // quantum=4
-    private Queue<Process> queue2; // quantum=8
-    private Queue<Process> queue3; // Prioridad más baja, quantum=16
+    private Queue<Process> queue0; 
+    private Queue<Process> queue1; 
+    private Queue<Process> queue2; 
+    private Queue<Process> queue3; 
 
-    private Queue<Process> newQueue; // Procesos nuevos
-    private Queue<Process> blockedQueue; // Procesos bloqueados por I/O
-    private Queue<Process> terminatedQueue; // Procesos terminados
+    private Queue<Process> newQueue; 
+    private Queue<Process> blockedQueue; 
+    private Queue<Process> terminatedQueue;
 
     private CPU cpu;
     private int currentTime;
-    private int[] quantums = { 2, 4, 8, 16 }; // Quantum por nivel
-    private int agingThreshold = 10; // Tiempo para aging
+    private int[] quantums = { 2, 4, 8, 16 }; 
+    private int agingThreshold = 10; 
 
     public MultilevelFeedbackQueueScheduler() {
         this.queue0 = new Queue<>();
@@ -45,12 +42,11 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
     @Override
     public void addProcess(Process process) {
         process.setState(ProcessState.NEW);
-        newQueue.enqueue(process); // ✅ CORRECTO
+        newQueue.enqueue(process); 
     }
 
     @Override
     public Process selectNextProcess() {
-        // Seleccionar de colas por prioridad
         if (!queue0.isEmpty())
             return queue0.dequeue();
         if (!queue1.isEmpty())
@@ -62,47 +58,32 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
         return null;
     }
 
-    // ===== NUEVOS MÉTODOS PARA COMPATIBILIDAD CON VENTANA =====
-
-    /**
-     * Procesa UN SOLO CICLO (compatible con Ventana.ejecutarCiclo())
-     * Este método se llama desde Ventana en lugar de executeSimulation()
-     */
     public void processSingleCycle(int globalClock) {
         this.currentTime = globalClock;
 
-        // 1. Admitir procesos nuevos
         admitNewProcesses();
 
-        // 2. Procesar cola de bloqueados (I/O)
         processBlockedQueue();
 
-        // 3. Aplicar aging periódicamente
         if (currentTime % agingThreshold == 0 && currentTime > 0) {
             applyAging();
         }
 
-        // 4. Si CPU está ocupado, procesar proceso actual
         if (cpu.isBusy()) {
             Process current = cpu.getCurrentProcess();
             int currentLevel = current.getCurrentQueueLevel();
             int quantum = quantums[currentLevel];
 
-            // ✅ NUEVO: Obtener quantum usado en este nivel
             int quantumUsed = current.getQuantumUsedInCurrentLevel();
 
-            // Ejecutar un ciclo
             boolean canContinue = current.execute(currentTime);
             cpu.executeCycle();
 
-            // ✅ NUEVO: Incrementar quantum usado
             quantumUsed++;
             current.setQuantumUsedInCurrentLevel(quantumUsed);
 
-            // Incrementar waiting time de otros procesos
             incrementWaitingTimes();
 
-            // ✅ VERIFICAR: ¿El proceso terminó?
             if (current.isFinished()) {
                 current.setState(ProcessState.TERMINATED);
                 current.setCompletionTime(currentTime);
@@ -111,21 +92,17 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
                 return;
             }
 
-            // ✅ VERIFICAR: ¿Necesita I/O?
             if (!canContinue) {
                 current.setState(ProcessState.BLOCKED);
                 blockedQueue.enqueue(cpu.releaseProcess());
                 return;
             }
 
-            // ✅ NUEVO: VERIFICAR SI AGOTÓ EL QUANTUM
             if (quantumUsed >= quantum && !current.isFinished()) {
-                // ✅ DEGRADAR PRIORIDAD
                 current.degradePriority();
                 current.setState(ProcessState.READY);
-                current.resetQuantumUsedInCurrentLevel(); // ✅ Resetear contador
+                current.resetQuantumUsedInCurrentLevel(); 
 
-                // ✅ Agregar a la cola del nuevo nivel
                 Queue<Process> targetQueue = getQueueForLevel(current.getCurrentQueueLevel());
                 targetQueue.enqueue(cpu.releaseProcess());
 
@@ -134,15 +111,13 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             }
 
         } else {
-            // 5. Si CPU está libre, seleccionar siguiente proceso
             Process nextProcess = selectNextProcess();
 
             if (nextProcess != null) {
                 cpu.assignProcess(nextProcess);
                 nextProcess.setState(ProcessState.RUNNING);
-                nextProcess.resetQuantumUsedInCurrentLevel(); // ✅ Resetear quantum al iniciar
+                nextProcess.resetQuantumUsedInCurrentLevel(); 
             } else {
-                // CPU idle
                 cpu.tickIdle();
                 incrementWaitingTimes();
             }
@@ -155,7 +130,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
 
     /**
      * Maneja la finalización de un proceso en el quantum actual
-     * (Llamado desde Ventana cuando un proceso termina)
      */
     public void onProcessFinished(Process process) {
         process.setState(ProcessState.TERMINATED);
@@ -165,7 +139,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
 
     /**
      * Maneja el bloqueo de un proceso por I/O
-     * (Llamado desde Ventana cuando un proceso necesita I/O)
      */
     public void onProcessBlocked(Process process) {
         process.setState(ProcessState.BLOCKED);
@@ -174,7 +147,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
 
     /**
      * Maneja la degradación de un proceso cuando agota su quantum
-     * (Llamado desde Ventana cuando un proceso agota quantum pero no termina)
      */
     public void onQuantumExpired(Process process) {
         process.degradePriority();
@@ -232,10 +204,10 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             Process p = newQueue.dequeue();
             if (p.getArrivalTime() <= currentTime) {
                 p.setState(ProcessState.READY);
-                p.setCurrentQueueLevel(0); // Empiezan en máxima prioridad
+                p.setCurrentQueueLevel(0); 
                 queue0.enqueue(p);
             } else {
-                newQueue.enqueue(p); // Todavía no llega
+                newQueue.enqueue(p); 
             }
         }
     }
@@ -249,12 +221,10 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             Process p = blockedQueue.dequeue();
 
             if (p.processIO()) {
-                // Terminó el I/O, regresa a cola ready (misma prioridad)
                 p.setState(ProcessState.READY);
                 Queue<Process> targetQueue = getQueueForLevel(p.getCurrentQueueLevel());
                 targetQueue.enqueue(p);
             } else {
-                // Aún bloqueado
                 blockedQueue.enqueue(p);
             }
         }
@@ -275,11 +245,11 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             Process p = queue.dequeue();
 
             if (p.getTimeInCurrentQueue() >= agingThreshold) {
-                p.improvePriority(); // Sube de nivel
+                p.improvePriority(); 
                 Queue<Process> targetQueue = getQueueForLevel(p.getCurrentQueueLevel());
                 targetQueue.enqueue(p);
             } else {
-                queue.enqueue(p); // Permanece
+                queue.enqueue(p);
             }
         }
     }
@@ -310,13 +280,10 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
         while (!newQueue.isEmpty() || !queue0.isEmpty() || !queue1.isEmpty() ||
                 !queue2.isEmpty() || !queue3.isEmpty() || !blockedQueue.isEmpty() || cpu.isBusy()) {
 
-            // 1. Admitir procesos nuevos
             admitNewProcesses();
 
-            // 2. Procesar cola de bloqueados (I/O)
             processBlockedQueue();
 
-            // 3. Si CPU está libre, seleccionar siguiente proceso
             if (cpu.isIdle() && hasProcesses()) {
                 Process nextProcess = selectNextProcess();
                 if (nextProcess != null) {
@@ -324,26 +291,21 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
                 }
             }
 
-            // 4. Ejecutar un ciclo del CPU
             if (cpu.isBusy()) {
                 Process current = cpu.getCurrentProcess();
                 int currentLevel = current.getCurrentQueueLevel();
                 int quantum = quantums[currentLevel];
 
-                // Ejecutar por el quantum del nivel actual
                 for (int q = 0; q < quantum && current.getRemainingTime() > 0; q++) {
                     boolean canContinue = cpu.executeCycle(currentTime);
                     currentTime++;
 
-                    // Incrementar waiting time de otros procesos
                     incrementWaitingTimes();
 
-                    // Aplicar aging periódicamente
                     if (currentTime % agingThreshold == 0) {
                         applyAging();
                     }
 
-                    // Si el proceso terminó
                     if (current.isFinished()) {
                         current.setState(ProcessState.TERMINATED);
                         current.calculateMetrics(currentTime);
@@ -351,7 +313,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
                         break;
                     }
 
-                    // Si necesita I/O
                     if (!canContinue) {
                         current.setState(ProcessState.BLOCKED);
                         blockedQueue.enqueue(cpu.releaseProcess());
@@ -359,7 +320,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
                     }
                 }
 
-                // Si agotó el quantum y no terminó ni bloqueó, degradar
                 if (cpu.isBusy() && !current.isFinished() && !current.isBlocked()) {
                     current.degradePriority();
                     current.setState(ProcessState.READY);
@@ -368,14 +328,12 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
                 }
 
             } else {
-                // CPU idle
                 cpu.tickIdle();
                 currentTime++;
                 incrementWaitingTimes();
             }
         }
 
-        // Convertir Queue a LinkedList para compatibilidad
         Lista<Process> result = new Lista<>();
         while (!terminatedQueue.isEmpty()) {
             result.insertBegin(terminatedQueue.dequeue());
@@ -407,7 +365,6 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
         return "Multilevel Feedback Queue (MLFQ)";
     }
 
-    // Getters para acceso externo
     public Queue<Process> getQueue0() {
         return queue0;
     }

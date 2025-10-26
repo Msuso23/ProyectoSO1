@@ -4,12 +4,12 @@ package Modelos;
  * Modelo que representa la CPU del sistema con soporte para I/O
  */
 public class CPU {
-    private Process currentProcess; // Proceso actualmente en ejecución
-    private int totalExecutionTime; // Tiempo total de ejecución
-    private int idleTime; // Tiempo inactivo
-    private int contextSwitchTime; // Tiempo en cambios de contexto
-    private boolean idle; // Si está inactivo
-    private int clockTime; // Reloj del sistema (para compatibilidad)
+    private Process currentProcess; 
+    private int totalExecutionTime; 
+    private int idleTime; 
+    private int contextSwitchTime;
+    private boolean idle; 
+    private int clockTime; 
 
     public CPU() {
         this.currentProcess = null;

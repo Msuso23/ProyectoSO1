@@ -5,48 +5,40 @@ package Modelos;
  * para I/O
  */
 public class Process {
-    // Identificación
-    private int pid; // Process ID
-    private String name; // Nombre del proceso
+    private int pid;
+    private String name;
 
-    // Tiempos básicos
-    private int arrivalTime; // Tiempo de llegada
-    private int burstTime; // Tiempo total de CPU requerido (instrucciones)
-    private int remainingTime; // Tiempo restante de ejecución
+    private int arrivalTime;
+    private int burstTime;
+    private int remainingTime;
 
-    // Características
-    private int priority; // Prioridad (menor = mayor prioridad)
-    private int basePriority; // Prioridad base (para restaurar)
-    private ProcessType type; // Tipo de proceso (CPU/IO/Mixed)
+    private int priority;
+    private int basePriority;
+    private ProcessType type;
 
-    // I/O Management
-    private int ioCycle; // Cada cuántas instrucciones hace I/O
-    private int ioDuration; // Duración de cada operación I/O
-    private int currentCycle; // Contador del ciclo actual
-    private int ioRemaining; // Tiempo restante de I/O actual
-    private int totalIoTime; // Tiempo total en I/O acumulado
+    private int ioCycle;
+    private int ioDuration;
+    private int currentCycle;
+    private int ioRemaining;
+    private int totalIoTime;
 
-    // Memoria
-    private int memorySize; // Tamaño en memoria (KB)
-    private int programCounter; // Contador de programa (PC)
-    private int memoryAddressRegister; // MAR - dirección de memoria
+    private int memorySize;
+    private int programCounter;
+    private int memoryAddressRegister;
 
-    // Estado
-    private ProcessState state; // Estado actual
-    private int currentQueueLevel; // Nivel en multilevel feedback queue (0 = mayor prioridad)
-    private int timeInCurrentQueue; // Tiempo en cola actual (para aging)
+    private ProcessState state;
+    private int currentQueueLevel;
+    private int timeInCurrentQueue;
 
-    // Métricas
-    private int completionTime; // Tiempo de finalización
-    private int turnaroundTime; // Tiempo de retorno
-    private int waitingTime; // Tiempo de espera
-    private int responseTime; // Tiempo de respuesta
-    private int firstResponseTime; // Para calcular response time
-    private boolean hasResponded; // Si ya obtuvo CPU por primera vez
+    private int completionTime;
+    private int turnaroundTime;
+    private int waitingTime;
+    private int responseTime;
+    private int firstResponseTime;
+    private boolean hasResponded;
 
-    // Tracking
-    private int contextSwitches; // Número de cambios de contexto
-    private int ioOperations; // Número de operaciones I/O realizadas
+    private int contextSwitches;
+    private int ioOperations;
 
     private int quantumUsedInCurrentLevel = 0;
 
@@ -120,21 +112,17 @@ public class Process {
         programCounter++;
         currentCycle++;
 
-        // ✅ NUEVO: Actualizar MAR (dirección de memoria de la instrucción actual)
-        // MAR = Dirección base del proceso + PC
-        // Asumiendo que cada proceso tiene su segmento de memoria
-        int baseAddress = pid * 1024; // Cada proceso inicia en múltiplos de 1024
+        int baseAddress = pid * 1024;
         memoryAddressRegister = baseAddress + programCounter;
 
-        // ✅ VERIFICAR: Si necesita I/O
         if (ioCycle > 0 && currentCycle >= ioCycle && remainingTime > 0) {
-            currentCycle = 0; // ✅ IMPORTANTE: Resetear ciclo
+            currentCycle = 0;
             ioRemaining = ioDuration;
             ioOperations++;
-            return false; // Necesita I/O
+            return false;
         }
 
-        return true; // Continúa ejecutando
+        return true;
     }
 
     /**
@@ -202,7 +190,6 @@ public class Process {
     public void calculateMetrics(int currentTime) {
         this.completionTime = currentTime;
         this.turnaroundTime = completionTime - arrivalTime;
-        // waitingTime ya se fue incrementando durante la simulación
     }
 
     /**
@@ -210,14 +197,13 @@ public class Process {
      */
     public void calculateMetrics() {
         turnaroundTime = completionTime - arrivalTime;
-        // waitingTime ya calculado
     }
 
     /**
      * Degrada la prioridad (mueve a cola de menor prioridad)
      */
     public void degradePriority() {
-        if (currentQueueLevel < 3) { // Máximo 4 niveles (0-3)
+        if (currentQueueLevel < 3) {
             currentQueueLevel++;
             timeInCurrentQueue = 0;
         }
