@@ -9,10 +9,10 @@ package EDD;
  * @author susov
  * @param <T>
  */
-public class Lista <T>{
-    private Nodo<T> Head; 
-    private Nodo<T> Tail; 
-    private int size; 
+public class Lista<T> {
+    private Nodo<T> Head;
+    private Nodo<T> Tail;
+    private int size;
 
     public Lista() {
         this.Head = null;
@@ -23,7 +23,7 @@ public class Lista <T>{
     public Nodo getHead() {
         return Head;
     }
-    
+
     public T getFirst() {
         if (isEmpty()) {
             System.out.println("La lista esta vacia");
@@ -42,7 +42,6 @@ public class Lista <T>{
     public void setTail(Nodo Tail) {
         this.Tail = Tail;
     }
-    
 
     public int getSize() {
         return size;
@@ -51,64 +50,64 @@ public class Lista <T>{
     public void setSize(int size) {
         this.size = size;
     }
-    
-    
-    public boolean isEmpty(){
+
+    public boolean isEmpty() {
         return this.Head == null;
     }
-    
 
-    public void vaciar(){
+    public void vaciar() {
         this.Head = null;
         this.Tail = null; // También limpiar 'last'
-        this.size = 0;   
+        this.size = 0;
     }
-    
+
     public void insertBegin(Object element) {
-        Nodo nodo = new Nodo(element);
+        Nodo<T> nodo = new Nodo<>((T) element);
         if (isEmpty()) {
-            setHead(nodo);
+            // ✅ CORREGIDO: Primer nodo, Head y Tail apuntan al mismo
+            Head = nodo;
+            Tail = nodo;
         } else {
-           nodo.setNext(getHead());
-           setHead(nodo);
+            // ✅ CORREGIDO: Mantener enlaces bidireccionales
+            nodo.setNext(Head);
+            Head.setPrevious(nodo);
+            Head = nodo;
         }
         size++;
     }
 
-    public void insertarFinal(Object dato){
-        Nodo pNew = new Nodo(dato);
-        if(isEmpty()){
+    public void insertarFinal(Object dato) {
+        Nodo<T> pNew = new Nodo<>((T) dato);
+        if (isEmpty()) {
+            // ✅ CORREGIDO: Primer nodo
             Head = pNew;
-        }else{
-            Nodo aux = Head;
-            while (aux.getNext() != null){
-                aux = aux.getNext();
-            }
-            aux.setNext(pNew);
+            Tail = pNew;
+        } else {
+            // ✅ CORREGIDO: Insertar al final manteniendo Tail
+            Tail.setNext(pNew);
+            pNew.setPrevious(Tail);
+            Tail = pNew;
         }
         size++;
     }
-    
-    
-    //Metodo de insertar un valor por una posicion 
-    public void insertarPosicion(int posicion, Object valor){
-        if(posicion>=0 && posicion<size){
+
+    // Metodo de insertar un valor por una posicion
+    public void insertarPosicion(int posicion, Object valor) {
+        if (posicion >= 0 && posicion < size) {
             Nodo nuevo = new Nodo(valor);
-            if(posicion == 0){
+            if (posicion == 0) {
                 nuevo.setNext(Head);
                 Head = nuevo;
-            }
-            else{
-                if(posicion == size-1){
+            } else {
+                if (posicion == size - 1) {
                     Nodo aux = Head;
-                    while(aux.getNext() != null){
+                    while (aux.getNext() != null) {
                         aux = aux.getNext();
                     }
-                    aux.setNext(nuevo);              
-                }
-                else{
+                    aux.setNext(nuevo);
+                } else {
                     Nodo aux = Head;
-                    for (int i = 0; i < (posicion-1); i++) {
+                    for (int i = 0; i < (posicion - 1); i++) {
                         aux = aux.getNext();
                     }
                     Nodo siguiente = aux.getNext();
@@ -119,14 +118,14 @@ public class Lista <T>{
             size++;
         }
     }
-    
+
     public T get(int index) {
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Índice fuera de rango");
         }
         return getNodeAt(index).getData();
     }
-    
+
     private Nodo<T> getNodeAt(int index) {
         Nodo<T> current;
 
@@ -145,7 +144,7 @@ public class Lista <T>{
 
         return current;
     }
-    
+
     public T removeLast() {
         if (isEmpty()) {
             System.out.println("La lista esta vacia");
@@ -163,7 +162,7 @@ public class Lista <T>{
         size--;
         return data;
     }
-    
+
     public T remove(int index) {
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Índice fuera de rango");
@@ -187,7 +186,7 @@ public class Lista <T>{
 
         return current.getData();
     }
-    
+
     public boolean remove(T data) {
         Nodo<T> current = Head;
         int index = 0;
@@ -203,7 +202,7 @@ public class Lista <T>{
 
         return false;
     }
-    
+
     public T removeFirst() {
         if (isEmpty()) {
             throw new IllegalStateException("La lista está vacía");
@@ -221,7 +220,7 @@ public class Lista <T>{
         size--;
         return data;
     }
-    
+
     public int indexOf(T data) {
         Nodo<T> current = Head;
         int index = 0;
@@ -236,7 +235,7 @@ public class Lista <T>{
 
         return -1;
     }
-    
+
     public boolean contains(T data) {
         return indexOf(data) != -1;
     }
@@ -273,5 +272,5 @@ public class Lista <T>{
         sb.append("]");
         return sb.toString();
     }
-    
+
 }
