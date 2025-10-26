@@ -1,7 +1,7 @@
 package Modelos;
 
 /**
- * Modelo que representa la CPU del sistema con soporte para I/O
+ * Modelo que representa la CPU del sistema con soporte para I/O y sincronización con hilos
  */
 public class CPU {
     private Process currentProcess; 
@@ -9,7 +9,8 @@ public class CPU {
     private int idleTime; 
     private int contextSwitchTime;
     private boolean idle; 
-    private int clockTime; 
+    private int clockTime;
+    private final Object cpuLock = new Object();
 
     public CPU() {
         this.currentProcess = null;
@@ -21,9 +22,9 @@ public class CPU {
     }
 
     /**
-     * Asigna un proceso a la CPU
+     * Asigna un proceso a la CPU (sincronizado para acceso concurrente)
      */
-    public void assignProcess(Process process) {
+    public synchronized void assignProcess(Process process) {
         if (currentProcess != null && currentProcess != process) {
             currentProcess.incrementContextSwitches();
             contextSwitchTime++;
@@ -37,11 +38,11 @@ public class CPU {
     }
 
     /**
-     * Ejecuta un ciclo de CPU (método original para compatibilidad)
+     * Ejecuta un ciclo de CPU (sincronizado)
      * 
      * @return true si el proceso terminó
      */
-    public boolean executeCycle() {
+    public synchronized boolean executeCycle() {
         if (currentProcess == null) {
             idle = true;
             idleTime++;
@@ -63,12 +64,12 @@ public class CPU {
     }
 
     /**
-     * Ejecuta un ciclo del proceso actual con manejo de I/O
+     * Ejecuta un ciclo del proceso actual con manejo de I/O (sincronizado)
      * 
      * @param currentTime Tiempo actual de la simulación
      * @return true si el proceso puede continuar, false si necesita I/O
      */
-    public boolean executeCycle(int currentTime) {
+    public synchronized boolean executeCycle(int currentTime) {
         if (currentProcess == null) {
             idleTime++;
             idle = true;
@@ -85,9 +86,9 @@ public class CPU {
     }
 
     /**
-     * Libera la CPU
+     * Libera la CPU (sincronizado)
      */
-    public Process releaseProcess() {
+    public synchronized Process releaseProcess() {
         Process temp = currentProcess;
         if (temp != null) {
             if (temp.getState() == ProcessState.RUNNING) {
@@ -100,70 +101,54 @@ public class CPU {
     }
 
     /**
-     * Avanza el reloj cuando está ociosa
+     * Avanza el reloj cuando está ociosa (sincronizado)
      */
-    public void tickIdle() {
+    public synchronized void tickIdle() {
         clockTime++;
         idleTime++;
         idle = true;
     }
 
-    // Getters
-    public Process getCurrentProcess() {
+    public synchronized Process getCurrentProcess() {
         return currentProcess;
     }
 
-    public int getClockTime() {
+    public synchronized int getClockTime() {
         return clockTime;
     }
 
-    public boolean isIdle() {
+    public synchronized boolean isIdle() {
         return idle;
     }
 
-    public boolean isBusy() {
+    public synchronized boolean isBusy() {
         return !idle && currentProcess != null;
     }
 
-    public void resetClock() {
+    public synchronized void resetClock() {
         this.clockTime = 0;
     }
 
-    /**
-     * Obtiene el tiempo total de ejecución
-     */
-    public int getTotalExecutionTime() {
+    public synchronized int getTotalExecutionTime() {
         return totalExecutionTime;
     }
 
-    /**
-     * Obtiene el tiempo inactivo
-     */
-    public int getIdleTime() {
+    public synchronized int getIdleTime() {
         return idleTime;
     }
 
-    /**
-     * Obtiene el tiempo en cambios de contexto
-     */
-    public int getContextSwitchTime() {
+    public synchronized int getContextSwitchTime() {
         return contextSwitchTime;
     }
 
-    /**
-     * Calcula el porcentaje de utilización del CPU
-     */
-    public double getUtilization() {
+    public synchronized double getUtilization() {
         if (totalExecutionTime + idleTime == 0) {
             return 0.0;
         }
         return (double) totalExecutionTime / (totalExecutionTime + idleTime) * 100.0;
     }
 
-    /**
-     * Reinicia las estadísticas del CPU
-     */
-    public void reset() {
+    public synchronized void reset() {
         currentProcess = null;
         totalExecutionTime = 0;
         idleTime = 0;
@@ -173,7 +158,7 @@ public class CPU {
     }
 
     @Override
-    public String toString() {
+    public synchronized String toString() {
         if (currentProcess != null) {
             return String.format("CPU[Ejecutando: %s]", currentProcess);
         }
