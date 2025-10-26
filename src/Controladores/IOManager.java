@@ -48,7 +48,6 @@ public class IOManager {
                 // El proceso completó su I/O, regresa a Ready
                 process.setState(ProcessState.READY);
                 readyProcesses.enqueue(process);
-                totalIOOperations++;
             } else {
                 // Aún bloqueado, regresa a la cola
                 blockedQueue.enqueue(process);
@@ -109,5 +108,22 @@ public class IOManager {
         return String.format(
                 "I/O Stats: Total Operations=%d, Currently Blocked=%d",
                 totalIOOperations, blockedQueue.size());
+    }
+
+    public void removeProcess(Process process) {
+        int size = blockedQueue.size();
+        Queue<Process> temp = new Queue<>();
+
+        for (int i = 0; i < size; i++) {
+            Process p = blockedQueue.dequeue();
+            if (p.getPid() != process.getPid()) {
+                temp.enqueue(p);
+            }
+        }
+
+        // Restaurar cola sin el proceso removido
+        while (!temp.isEmpty()) {
+            blockedQueue.enqueue(temp.dequeue());
+        }
     }
 }

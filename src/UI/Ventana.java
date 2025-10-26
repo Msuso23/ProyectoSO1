@@ -242,7 +242,7 @@ public class Ventana extends javax.swing.JFrame {
     // ===== INICIALIZAR SPINNERS =====
     private void initializeSpinners() {
         QuantumSpinner.setModel(new SpinnerNumberModel(4, 1, 20, 1));
-        ProcesosEnMemoriaSpinner.setModel(new SpinnerNumberModel(5, 1, 20, 1));
+        ProcesosEnMemoriaSpinner.setModel(new SpinnerNumberModel(10, 1, 20, 1));
         LlegadaCicloSpinner.setModel(new SpinnerNumberModel(0, 0, 100, 1));
         NroInstruccionesSpinner.setModel(new SpinnerNumberModel(10, 1, 100, 1));
         CicloDeIOSpinner.setModel(new SpinnerNumberModel(0, 0, 50, 1));
@@ -751,6 +751,8 @@ public class Ventana extends javax.swing.JFrame {
         // ✅ 2. Incrementar ciclo
         globalClock++;
 
+        checkMemoryPressure();
+
         boolean shouldLog = (globalClock % 50 == 0);
 
         if (shouldLog) {
@@ -758,7 +760,8 @@ public class Ventana extends javax.swing.JFrame {
             System.out.println("🕐 CICLO " + globalClock);
             System.out.println("=".repeat(60));
             System.out
-                    .println("📊 Progreso: " + terminatedProcesses.getSize() + "/" + allProcesses.getSize() + " terminados");
+                    .println("📊 Progreso: " + terminatedProcesses.getSize() + "/" + allProcesses.getSize()
+                            + " terminados");
         }
 
         // ✅ NUEVO: Si es MLFQ, procesar su lógica interna de ciclo
@@ -877,7 +880,6 @@ public class Ventana extends javax.swing.JFrame {
             handleProcessStateChange(currentProcess, needsIO, shouldLog, isMLFQ);
         }
 
-        // ✅ Incrementar Waiting Time (solo si NO es MLFQ)
         if (!isMLFQ) {
             for (int i = 0; i < allProcesses.getSize(); i++) {
                 Process p = allProcesses.get(i);
@@ -904,7 +906,88 @@ public class Ventana extends javax.swing.JFrame {
         checkSimulationEnd();
     }
 
-    // ✅ CORREGIDO: Ejecutar acción inmediatamente, delay solo para UI
+    private void checkMemoryPressure() {
+        int maxProcessesInMemory = (Integer) ProcesosEnMemoriaSpinner.getValue();
+
+        int processesInMemory = 0;
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            if (p.getState() == ProcessState.READY ||
+                    p.getState() == ProcessState.RUNNING) {
+                processesInMemory++;
+            }
+        }
+
+        final int memoryCount = processesInMemory;
+
+        int suspendThreshold = maxProcessesInMemory * 2;
+
+        // ✅ SUSPENDER solo si hay sobrecarga EXTREMA
+        if (processesInMemory > suspendThreshold) {
+            Process toSuspend = findLowestPriorityReadyProcess();
+
+            if (toSuspend != null) {
+                showKernelModeForEvent("Suspendiendo P" + toSuspend.getPid() + " por falta de memoria", () -> {
+                    ProcessState previousState = toSuspend.getState();
+                    toSuspend.setState(ProcessState.SUSPENDED);
+
+                    // Si estaba en CPU, liberarlo
+                    if (previousState == ProcessState.RUNNING) {
+                        cpu.releaseProcess();
+                        lastExecutedProcess = null;
+                    }
+
+                    logKernelMode(String.format("P%d suspendido por presión de memoria (%d/%d en RAM)",
+                            toSuspend.getPid(), memoryCount, maxProcessesInMemory));
+                    logProcessStateChange(toSuspend.getPid(), previousState.toString(), "SUSPENDED");
+                });
+            }
+        }
+
+        else if (processesInMemory < maxProcessesInMemory / 2) {
+            Process toResume = findSuspendedProcess();
+
+            if (toResume != null) {
+                showKernelModeForEvent("Reanudando P" + toResume.getPid() + " desde suspensión", () -> {
+                    toResume.setState(ProcessState.READY);
+                    scheduler.addProcess(toResume);
+
+                    logKernelMode(String.format("P%d reanudado desde suspensión", toResume.getPid()));
+                    logProcessStateChange(toResume.getPid(), "SUSPENDED", "READY");
+                });
+            }
+        }
+    }
+
+    private Process findLowestPriorityReadyProcess() {
+        Process lowest = null;
+        int lowestPriority = -1;
+
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+
+            // Solo considerar procesos READY
+            if (p.getState() == ProcessState.READY) {
+                if (lowest == null || p.getPriority() > lowestPriority) {
+                    lowest = p;
+                    lowestPriority = p.getPriority();
+                }
+            }
+        }
+
+        return lowest;
+    }
+
+    private Process findSuspendedProcess() {
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            if (p.getState() == ProcessState.SUSPENDED) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     private void showKernelModeForEvent(String eventDescription, Runnable action) {
         // Pausar simulación
         if (simulationTimer != null) {
@@ -1634,7 +1717,8 @@ public class Ventana extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
     // <editor-fold defaultstate="collapsed" desc="Generated
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         SimuladorCPUText = new javax.swing.JLabel();
@@ -1783,7 +1867,8 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(Nivel3Spinner);
         Nivel3Spinner.setBounds(494, 66, 42, 22);
 
-        AlgorithmSelectorComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "HRRN", "Feedback", "RoundRobin", "SJF", "SRTF" }));
+        AlgorithmSelectorComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(
+                new String[] { "FCFS", "HRRN", "Feedback", "RoundRobin", "SJF", "SRTF" }));
         AlgorithmSelectorComboBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 AlgorithmSelectorComboBoxActionPerformed(evt);
@@ -1840,7 +1925,8 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(TipoText);
         TipoText.setBounds(6, 461, 120, 16);
 
-        TipoComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CPU Bound", "I/O Bound", "Mixto" }));
+        TipoComboBox
+                .setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CPU Bound", "I/O Bound", "Mixto" }));
         TipoComboBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 TipoComboBoxActionPerformed(evt);
@@ -1899,61 +1985,75 @@ public class Ventana extends javax.swing.JFrame {
         javax.swing.GroupLayout CPUPanelLayout = new javax.swing.GroupLayout(CPUPanel);
         CPUPanel.setLayout(CPUPanelLayout);
         CPUPanelLayout.setHorizontalGroup(
-            CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(CPUPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ProcesoText)
-                    .addComponent(PIDText)
-                    .addComponent(PCText)
-                    .addComponent(MARText)
-                    .addComponent(TotalText)
-                    .addComponent(ModoText)
-                    .addComponent(CicloActualText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 79, Short.MAX_VALUE)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ProcesoResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(PIDResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(PCResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(MARResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(TotalResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(CicloActualResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(ModoResponseText, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
-        );
+                CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(CPUPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ProcesoText)
+                                        .addComponent(PIDText)
+                                        .addComponent(PCText)
+                                        .addComponent(MARText)
+                                        .addComponent(TotalText)
+                                        .addComponent(ModoText)
+                                        .addComponent(CicloActualText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 79,
+                                        Short.MAX_VALUE)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ProcesoResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(PIDResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(PCResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(MARResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(TotalResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(CicloActualResponseText,
+                                                javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(ModoResponseText, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 80,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap()));
         CPUPanelLayout.setVerticalGroup(
-            CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(CPUPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ProcesoText)
-                    .addComponent(ProcesoResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(PIDText)
-                    .addComponent(PIDResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(PCText)
-                    .addComponent(PCResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(MARText)
-                    .addComponent(MARResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(TotalText)
-                    .addComponent(TotalResponseText))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(CicloActualResponseText)
-                    .addComponent(CicloActualText, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ModoText)
-                    .addComponent(ModoResponseText))
-                .addContainerGap(16, Short.MAX_VALUE))
-        );
+                CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(CPUPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(ProcesoText)
+                                        .addComponent(ProcesoResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(PIDText)
+                                        .addComponent(PIDResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(PCText)
+                                        .addComponent(PCResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(MARText)
+                                        .addComponent(MARResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(TotalText)
+                                        .addComponent(TotalResponseText))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(CicloActualResponseText)
+                                        .addComponent(CicloActualText, javax.swing.GroupLayout.Alignment.TRAILING))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(CPUPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(ModoText)
+                                        .addComponent(ModoResponseText))
+                                .addContainerGap(16, Short.MAX_VALUE)));
 
         getContentPane().add(CPUPanel);
         CPUPanel.setBounds(10, 630, 240, 172);
@@ -1990,63 +2090,69 @@ public class Ventana extends javax.swing.JFrame {
         javax.swing.GroupLayout EstadosDeProcesosPanelLayout = new javax.swing.GroupLayout(EstadosDeProcesosPanel);
         EstadosDeProcesosPanel.setLayout(EstadosDeProcesosPanelLayout);
         EstadosDeProcesosPanelLayout.setHorizontalGroup(
-            EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ActivosScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 269, Short.MAX_VALUE)
-                    .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
-                        .addGroup(EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(EstadosDeProcesosText)
-                            .addComponent(ActivosText)
-                            .addComponent(BloqueadosText)
-                            .addComponent(TerminadosTExt)
-                            .addComponent(SuspendidosText))
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(BloqueadosScrollPane)
-                    .addComponent(TerminadosScrollPane)
-                    .addComponent(SuspendidosScrollPane))
-                .addContainerGap())
-        );
+                EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(EstadosDeProcesosPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ActivosScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 269,
+                                                Short.MAX_VALUE)
+                                        .addGroup(EstadosDeProcesosPanelLayout.createSequentialGroup()
+                                                .addGroup(EstadosDeProcesosPanelLayout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(EstadosDeProcesosText)
+                                                        .addComponent(ActivosText)
+                                                        .addComponent(BloqueadosText)
+                                                        .addComponent(TerminadosTExt)
+                                                        .addComponent(SuspendidosText))
+                                                .addGap(0, 0, Short.MAX_VALUE))
+                                        .addComponent(BloqueadosScrollPane)
+                                        .addComponent(TerminadosScrollPane)
+                                        .addComponent(SuspendidosScrollPane))
+                                .addContainerGap()));
         EstadosDeProcesosPanelLayout.setVerticalGroup(
-            EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, EstadosDeProcesosPanelLayout.createSequentialGroup()
-                .addContainerGap(12, Short.MAX_VALUE)
-                .addComponent(EstadosDeProcesosText)
-                .addGap(17, 17, 17)
-                .addComponent(ActivosText)
-                .addGap(5, 5, 5)
-                .addComponent(ActivosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(BloqueadosText)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(BloqueadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(TerminadosTExt)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(TerminadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(SuspendidosText)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(SuspendidosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                EstadosDeProcesosPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, EstadosDeProcesosPanelLayout
+                                .createSequentialGroup()
+                                .addContainerGap(12, Short.MAX_VALUE)
+                                .addComponent(EstadosDeProcesosText)
+                                .addGap(17, 17, 17)
+                                .addComponent(ActivosText)
+                                .addGap(5, 5, 5)
+                                .addComponent(ActivosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(BloqueadosText)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(BloqueadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(TerminadosTExt)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(TerminadosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(SuspendidosText)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(SuspendidosScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
 
         getContentPane().add(EstadosDeProcesosPanel);
         EstadosDeProcesosPanel.setBounds(267, 282, 283, 520);
 
-        MetricasRendimientoSistemaPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        MetricasRendimientoSistemaPanel
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        javax.swing.GroupLayout MetricasRendimientoSistemaPanelLayout = new javax.swing.GroupLayout(MetricasRendimientoSistemaPanel);
+        javax.swing.GroupLayout MetricasRendimientoSistemaPanelLayout = new javax.swing.GroupLayout(
+                MetricasRendimientoSistemaPanel);
         MetricasRendimientoSistemaPanel.setLayout(MetricasRendimientoSistemaPanelLayout);
         MetricasRendimientoSistemaPanelLayout.setHorizontalGroup(
-            MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 478, Short.MAX_VALUE)
-        );
+                MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 478, Short.MAX_VALUE));
         MetricasRendimientoSistemaPanelLayout.setVerticalGroup(
-            MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 218, Short.MAX_VALUE)
-        );
+                MetricasRendimientoSistemaPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 218, Short.MAX_VALUE));
 
         getContentPane().add(MetricasRendimientoSistemaPanel);
         MetricasRendimientoSistemaPanel.setBounds(568, 60, 480, 220);
@@ -2061,18 +2167,18 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(LineaTiempoEjecucionProcesosText);
         LineaTiempoEjecucionProcesosText.setBounds(568, 292, 480, 16);
 
-        LineaTiempoEjecucionProcesosPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        LineaTiempoEjecucionProcesosPane
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        javax.swing.GroupLayout LineaTiempoEjecucionProcesosPaneLayout = new javax.swing.GroupLayout(LineaTiempoEjecucionProcesosPane);
+        javax.swing.GroupLayout LineaTiempoEjecucionProcesosPaneLayout = new javax.swing.GroupLayout(
+                LineaTiempoEjecucionProcesosPane);
         LineaTiempoEjecucionProcesosPane.setLayout(LineaTiempoEjecucionProcesosPaneLayout);
         LineaTiempoEjecucionProcesosPaneLayout.setHorizontalGroup(
-            LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 478, Short.MAX_VALUE)
-        );
+                LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 478, Short.MAX_VALUE));
         LineaTiempoEjecucionProcesosPaneLayout.setVerticalGroup(
-            LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 218, Short.MAX_VALUE)
-        );
+                LineaTiempoEjecucionProcesosPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 218, Short.MAX_VALUE));
 
         getContentPane().add(LineaTiempoEjecucionProcesosPane);
         LineaTiempoEjecucionProcesosPane.setBounds(568, 314, 480, 220);
@@ -2082,19 +2188,19 @@ public class Ventana extends javax.swing.JFrame {
         getContentPane().add(ResultadosSimulacionText);
         ResultadosSimulacionText.setBounds(568, 550, 480, 16);
 
-        ResultadosDeSimulacionScrollPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        ResultadosDeSimulacionScrollPane
+                .setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
         ResultadosDeSimulacionTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null}
-            },
-            new String [] {
-                "PID", "Nombre", "AT", "BT", "CT", "TAT", "WT", "RT"
-            }
-        ));
+                new Object[][] {
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null },
+                        { null, null, null, null, null, null, null, null }
+                },
+                new String[] {
+                        "PID", "Nombre", "AT", "BT", "CT", "TAT", "WT", "RT"
+                }));
         ResultadosDeSimulacionScrollPane.setViewportView(ResultadosDeSimulacionTable);
 
         getContentPane().add(ResultadosDeSimulacionScrollPane);
