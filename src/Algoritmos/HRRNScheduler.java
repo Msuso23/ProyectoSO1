@@ -8,7 +8,7 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo HRRN (Highest Response Ratio Next) 
+ * Algoritmo HRRN (Highest Response Ratio Next)
  * Selecciona el proceso con mayor ratio de respuesta
  * Response Ratio = (Tiempo de Espera + Burst Time) / Burst Time
  */
@@ -36,6 +36,13 @@ public class HRRNScheduler implements Scheduler {
         readyQueue.insertBegin(process);
 
         allProcesses.insertBegin(process);
+
+        // ✅ NUEVO: Log de debugging
+        System.out.println("  📥 [HRRN] Proceso agregado: P" + process.getPid() +
+                " (Estado=" + process.getState() +
+                ", RT=" + process.getRemainingTime() +
+                ", WT=" + process.getWaitingTime() + ")");
+        System.out.println("  📋 [HRRN] Cola READY ahora tiene " + readyQueue.getSize() + " procesos");
     }
 
     @Override
@@ -44,28 +51,48 @@ public class HRRNScheduler implements Scheduler {
             return null;
         }
 
-        int bestIndex = 0;
-        double highestRR = calculateResponseRatio(readyQueue.get(0));
+        // ✅ MODIFICADO: Usar el tiempo de espera real de cada proceso
+        Process selectedProcess = null;
+        double highestRatio = -1;
 
-        for (int i = 1; i < readyQueue.getSize(); i++) {
-            double rr = calculateResponseRatio(readyQueue.get(i));
+        for (int i = 0; i < readyQueue.getSize(); i++) {
+            Process p = readyQueue.get(i);
 
-            if (rr > highestRR) {
-                highestRR = rr;
-                bestIndex = i;
-            }
-            else if (rr == highestRR) {
-                if (readyQueue.get(i).getArrivalTime() < readyQueue.get(bestIndex).getArrivalTime()) {
-                    bestIndex = i;
-                }
+            // ✅ Calcular ratio usando el tiempo de espera acumulado del proceso
+            int waitingTime = p.getWaitingTime();
+            int burstTime = p.getRemainingTime();
+
+            // Response Ratio = (Waiting Time + Burst Time) / Burst Time
+            double ratio = (waitingTime + burstTime) / (double) burstTime;
+
+            System.out.println("  [HRRN] P" + p.getPid() + " - WT=" + waitingTime +
+                    ", BT=" + burstTime + ", Ratio=" + String.format("%.2f", ratio));
+
+            if (ratio > highestRatio) {
+                highestRatio = ratio;
+                selectedProcess = p;
             }
         }
 
-        return readyQueue.remove(bestIndex);
+        if (selectedProcess != null) {
+            // Remover de la cola
+            for (int i = 0; i < readyQueue.getSize(); i++) {
+                if (readyQueue.get(i).getPid() == selectedProcess.getPid()) {
+                    readyQueue.remove(i);
+                    break;
+                }
+            }
+
+            System.out.println("  ✅ [HRRN] Seleccionado: P" + selectedProcess.getPid() +
+                    " (Ratio=" + String.format("%.2f", highestRatio) + ")");
+        }
+
+        return selectedProcess;
     }
 
     /**
      * Calcula el Response Ratio de un proceso
+     * 
      * @param process Proceso a evaluar
      * @return Response Ratio (mayor es mejor)
      */
@@ -126,8 +153,7 @@ public class HRRNScheduler implements Scheduler {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
-                }
-                else if (!canContinue) {
+                } else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());
                 }

@@ -67,6 +67,12 @@ public class Ventana extends javax.swing.JFrame {
     private Lista<Process> terminatedProcesses;
     private Process lastExecutedProcess = null;
     private int eventCounter = 0;
+    private CPUSchedulerThread schedulerThread;
+    private IOManagerThread ioThread;
+    private Map<Integer, ProcessThread> processThreads;
+    private Semaphore cpuSemaphore;
+    private Semaphore ioSemaphore;
+    private volatile boolean threadsRunning = false;
 
     // ===== CONSTRUCTOR =====
     public Ventana() {
@@ -84,6 +90,9 @@ public class Ventana extends javax.swing.JFrame {
         ioManager = new IOManager();
         processSeriesMap = new HashMap<>();
         processColorMap = new HashMap<>();
+        processThreads = new HashMap<>();
+        cpuSemaphore = new Semaphore(1);
+        ioSemaphore = new Semaphore(1);
 
         // 2. Configurar ventana
         setTitle("Simulador de Planificación de CPU - Sistemas Operativos");
@@ -273,6 +282,11 @@ public class Ventana extends javax.swing.JFrame {
                 simulationTimer.setDelay(speed);
                 simulationSpeed = speed;
             }
+
+            // ✅ NUEVO: Actualizar velocidad del scheduler thread
+            if (schedulerThread != null) {
+                schedulerThread.setSimulationSpeed(speed);
+            }
         });
 
         // Inicializar el label con el valor inicial del slider
@@ -451,12 +465,18 @@ public class Ventana extends javax.swing.JFrame {
             return;
         }
 
-        // Si hay simulación activa, migrar procesos
         boolean isMigrating = (simulationTimer != null && simulationTimer.isRunning());
         Lista<Process> processesToMigrate = null;
         Process currentProcess = null;
+        int currentClock = globalClock;
 
         if (isMigrating) {
+            // ✅ Detener scheduler thread actual
+            if (schedulerThread != null) {
+                schedulerThread.stopScheduler();
+                schedulerThread = null;
+            }
+
             // Guardar proceso actual en CPU
             currentProcess = cpu.getCurrentProcess();
 
@@ -466,8 +486,10 @@ public class Ventana extends javax.swing.JFrame {
             logEvent("SCHEDULER", "═══════════════════════════════════════", Color.ORANGE);
             logEvent("SCHEDULER", "CAMBIO DE ALGORITMO EN CALIENTE", new Color(255, 152, 0));
             logEvent("SCHEDULER", "Anterior: " + scheduler.getAlgorithmName(), Color.BLUE);
+            logEvent("SCHEDULER", "Reloj Global: " + currentClock, Color.BLUE);
         }
 
+        // ===== CREAR NUEVO SCHEDULER SEGÚN ALGORITMO SELECCIONADO =====
         switch (algorithm) {
             case "FCFS":
                 scheduler = new FCFSScheduler();
@@ -514,6 +536,10 @@ public class Ventana extends javax.swing.JFrame {
                         (Integer) Nivel1Spinner.getValue(),
                         (Integer) Nivel2Spinner.getValue(),
                         (Integer) Nivel3Spinner.getValue());
+
+                // ✅ NUEVO: Asignar el CPU compartido a MLFQ
+                mlfq.setCPU(cpu);
+
                 scheduler = mlfq;
                 setQuantumEnabled(false);
                 setFeedbackSpinnersEnabled(true);
@@ -525,18 +551,27 @@ public class Ventana extends javax.swing.JFrame {
                 setFeedbackSpinnersEnabled(false);
         }
 
-        // Migrar procesos al nuevo scheduler
+        // ===== MIGRAR PROCESOS AL NUEVO SCHEDULER =====
         if (isMigrating && processesToMigrate != null) {
             logEvent("SCHEDULER", "Nuevo: " + scheduler.getAlgorithmName(), Color.BLUE);
 
-            // Detectar si el nuevo scheduler es MLFQ
+            // Debug: Mostrar procesos capturados
+            System.out.println("\n🔄 ═══════ MIGRACIÓN DE PROCESOS ═══════");
+            System.out.println("Scheduler anterior → Scheduler nuevo: " + scheduler.getAlgorithmName());
+            System.out.println("Procesos capturados: " + processesToMigrate.getSize());
+
+            for (int i = 0; i < processesToMigrate.getSize(); i++) {
+                Process p = processesToMigrate.get(i);
+                System.out.println(
+                        "  - P" + p.getPid() + " (Estado: " + p.getState() + ", RT: " + p.getRemainingTime() + ")");
+            }
+
             boolean isTargetMLFQ = (scheduler instanceof MultilevelFeedbackQueueScheduler);
 
-            // Si va a MLFQ, migrar también procesos bloqueados
+            // Si el destino es MLFQ, migrar también procesos bloqueados
             if (isTargetMLFQ) {
                 MultilevelFeedbackQueueScheduler mlfq = (MultilevelFeedbackQueueScheduler) scheduler;
 
-                // Migrar procesos bloqueados del IOManager al blockedQueue de MLFQ
                 Queue<Process> blockedInIO = ioManager.getBlockedQueue();
                 int blockedCount = blockedInIO.size();
 
@@ -554,27 +589,41 @@ public class Ventana extends javax.swing.JFrame {
             }
 
             // Migrar procesos READY
+            int migratedCount = 0;
             for (int i = 0; i < processesToMigrate.getSize(); i++) {
                 Process p = processesToMigrate.get(i);
-                if (p.getState() == ProcessState.READY) {
 
-                    // Método especial para MLFQ
+                if (p.getState() == ProcessState.READY) {
                     if (isTargetMLFQ) {
                         ((MultilevelFeedbackQueueScheduler) scheduler).addMigratedProcess(p);
                     } else {
                         scheduler.addProcess(p);
                     }
 
+                    migratedCount++;
                     logEvent("MIGRACIÓN", "P" + p.getPid() + " migrado al nuevo scheduler", new Color(103, 58, 183));
+                    System.out.println("  ✅ P" + p.getPid() + " migrado exitosamente");
+                } else {
+                    System.out.println("  ⚠️ P" + p.getPid() + " NO migrado (Estado: " + p.getState() + ")");
                 }
             }
+
+            System.out.println("Procesos migrados exitosamente: " + migratedCount + "/" + processesToMigrate.getSize());
+            System.out.println("═══════════════════════════════════════\n");
 
             // Si había proceso en CPU, liberarlo y agregarlo a READY
             if (currentProcess != null && !currentProcess.isFinished()) {
                 cpu.releaseProcess();
                 currentProcess.setState(ProcessState.READY);
 
-                // Método especial para MLFQ
+                // ✅ Liberar el semáforo de CPU
+                try {
+                    cpuSemaphore.release();
+                    logEvent("KERNEL", "Semáforo de CPU liberado en cambio de algoritmo", new Color(255, 87, 34));
+                } catch (Exception e) {
+                    // Ignorar si el semáforo ya estaba liberado
+                }
+
                 if (isTargetMLFQ) {
                     ((MultilevelFeedbackQueueScheduler) scheduler).addMigratedProcess(currentProcess);
                 } else {
@@ -586,8 +635,111 @@ public class Ventana extends javax.swing.JFrame {
                         new Color(103, 58, 183));
             }
 
+            // ✅ Reiniciar el semáforo de CPU
+            cpuSemaphore = new Semaphore(1);
+            logEvent("KERNEL", "Semáforo de CPU reiniciado", new Color(255, 87, 34));
+
+            // ✅ Actualizar referencia del scheduler en IOManagerThread
+            if (ioThread != null) {
+                ioThread.updateScheduler(scheduler);
+                logEvent("KERNEL", "IOManagerThread actualizado con nuevo scheduler", new Color(255, 87, 34));
+            }
+
+            // ✅ Crear nuevo scheduler thread con el nuevo scheduler y reloj actual
+            int currentSpeed = 1001 - VelocidadSlider.getValue();
+            schedulerThread = new CPUSchedulerThread(scheduler, cpu, allProcesses, cpuSemaphore, currentClock);
+            schedulerThread.setSimulationSpeed(currentSpeed);
+            schedulerThread.setListener(createSchedulerListener());
+            schedulerThread.start();
+
+            logEvent("SCHEDULER", "Scheduler thread reiniciado con nuevo algoritmo", new Color(33, 150, 243));
+            logEvent("SCHEDULER", "Reloj preservado en: " + currentClock, new Color(33, 150, 243));
             logEvent("SCHEDULER", "═══════════════════════════════════════", Color.ORANGE);
         }
+    }
+
+    private CPUSchedulerThread.SchedulerListener createSchedulerListener() {
+        return new CPUSchedulerThread.SchedulerListener() {
+            @Override
+            public void onProcessSelected(Process process) {
+                ProcessThread pt = processThreads.get(process.getPid());
+                if (pt != null) {
+                    pt.allowExecution();
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    logSchedulerDecision(String.format("P%d seleccionado para ejecución", process.getPid()));
+                    logProcessStateChange(process.getPid(), "READY", "RUNNING");
+                });
+            }
+
+            @Override
+            public void onContextSwitch(Process oldProcess, Process newProcess) {
+                SwingUtilities.invokeLater(() -> {
+                    logKernelMode(String.format("Context Switch: P%d → P%d",
+                            oldProcess.getPid(), newProcess.getPid()));
+                });
+            }
+
+            @Override
+            public void onProcessFinished(Process process) {
+                terminatedProcesses.insertBegin(process);
+
+                SwingUtilities.invokeLater(() -> {
+                    addResultToTable(process);
+                    logKernelMode(String.format("P%d finalizó su ejecución", process.getPid()));
+                    logProcessStateChange(process.getPid(), "RUNNING", "TERMINATED");
+                    logEvent("MÉTRICAS", String.format("P%d - TAT=%d, WT=%d, RT=%d",
+                            process.getPid(),
+                            process.getTurnaroundTime(),
+                            process.getWaitingTime(),
+                            process.getResponseTime()), new Color(103, 58, 183));
+                });
+            }
+
+            @Override
+            public void onProcessBlocked(Process process) {
+                synchronized (ioManager) {
+                    ioManager.blockProcess(process);
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    logKernelMode(String.format("P%d requiere operación I/O", process.getPid()));
+                    logProcessStateChange(process.getPid(), "RUNNING", "BLOCKED");
+                    logIOActivity(String.format("P%d bloqueado por I/O (duración: %d ciclos)",
+                            process.getPid(), process.getIoRemaining()));
+                });
+            }
+
+            @Override
+            public void onCycleCompleted(int clock) {
+                globalClock = clock;
+
+                if (clock >= 10000) {
+                    SwingUtilities.invokeLater(() -> {
+                        stopThreads();
+
+                        logEvent("SISTEMA", "═══════════════════════════════════════", Color.RED);
+                        logEvent("SISTEMA", "LÍMITE DE CICLOS ALCANZADO (10,000)", Color.RED);
+                        logEvent("SISTEMA", String.format("Procesos terminados: %d/%d",
+                                terminatedProcesses.getSize(), allProcesses.getSize()), Color.ORANGE);
+                        logEvent("SISTEMA", "═══════════════════════════════════════", Color.RED);
+
+                        mostrarResultadosFinales();
+                    });
+                }
+
+                if (clock % 100 == 0 && terminatedProcesses.getSize() >= allProcesses.getSize()) {
+                    SwingUtilities.invokeLater(() -> {
+                        logEvent("INFO",
+                                String.format(
+                                        "Todos los procesos terminados (Ciclo %d). Esperando botón Detener o nuevos procesos.",
+                                        clock),
+                                new Color(0, 150, 136));
+                    });
+                }
+            }
+        };
     }
 
     // ===== HABILITAR/DESHABILITAR CONTROLES =====
@@ -631,7 +783,7 @@ public class Ventana extends javax.swing.JFrame {
             return;
         }
 
-        if (simulationTimer != null && simulationTimer.isRunning()) {
+        if (threadsRunning) {
             JOptionPane.showMessageDialog(this,
                     "La simulación ya está en ejecución",
                     "Simulación Activa",
@@ -655,21 +807,12 @@ public class Ventana extends javax.swing.JFrame {
         // Crear scheduler según algoritmo seleccionado
         createScheduler();
 
-        // Procesar procesos con AT=0 ANTES de iniciar timer
-        for (int i = 0; i < allProcesses.getSize(); i++) {
-            Process p = allProcesses.get(i);
-            if (p.getArrivalTime() == 0 && p.getState() == ProcessState.NEW) {
-                p.setState(ProcessState.READY);
-                scheduler.addProcess(p);
-                System.out.println("🕐 Ciclo 0: P" + p.getPid() + " LLEGÓ (AT=" + p.getArrivalTime() + ")");
-            }
-        }
+        // ✅ INICIAR HILOS
+        startThreads();
 
-        // Configurar velocidad de simulación
+        // Configurar velocidad de simulación (para actualización de UI)
         simulationSpeed = 1001 - VelocidadSlider.getValue();
-
-        // Iniciar timer
-        simulationTimer = new Timer(simulationSpeed, e -> ejecutarCiclo());
+        simulationTimer = new Timer(simulationSpeed, e -> updateUIFromThreads());
         simulationTimer.start();
         isPaused = false;
 
@@ -679,38 +822,183 @@ public class Ventana extends javax.swing.JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
 
         logEvent("SISTEMA", "═══════════════════════════════════════", Color.BLACK);
-        logEvent("SISTEMA", "SIMULACIÓN INICIADA", Color.GREEN);
+        logEvent("SISTEMA", "SIMULACIÓN INICIADA CON HILOS", Color.GREEN);
         logEvent("SISTEMA", "Algoritmo: " + AlgorithmSelectorComboBox.getSelectedItem(), Color.BLUE);
         logEvent("SISTEMA", "Total de procesos: " + allProcesses.getSize(), Color.BLUE);
         logEvent("SISTEMA", "═══════════════════════════════════════", Color.BLACK);
+    }
 
+    private void startThreads() {
+        threadsRunning = true;
+
+        // 1. Crear hilos de procesos
+        processThreads.clear();
+        for (int i = 0; i < allProcesses.getSize(); i++) {
+            Process p = allProcesses.get(i);
+            ProcessThread pt = new ProcessThread(p);
+
+            // Configurar listener
+            pt.setListener(new ProcessThread.ProcessThreadListener() {
+                @Override
+                public void onProcessNeedsIO(Process process) {
+                    if (ioThread != null) {
+                        ioThread.blockProcess(process);
+                        logIOActivity(String.format("P%d bloqueado por I/O", process.getPid()));
+                    }
+                }
+
+                @Override
+                public void onProcessFinished(Process process) {
+                    process.calculateMetrics(schedulerThread.getGlobalClock());
+                    terminatedProcesses.insertBegin(process);
+
+                    SwingUtilities.invokeLater(() -> {
+                        addResultToTable(process);
+                        logEvent("TERMINADO", String.format("P%d completado (CT=%d)",
+                                process.getPid(), process.getCompletionTime()),
+                                new Color(76, 175, 80));
+                    });
+                }
+
+                @Override
+                public void onCycleExecuted(Process process) {
+                    SwingUtilities.invokeLater(() -> updateProcessTimeline());
+                }
+            });
+
+            processThreads.put(p.getPid(), pt);
+            pt.start();
+        }
+
+        // 2. Crear hilo de I/O
+        ioThread = new IOManagerThread(ioManager, scheduler);
+        ioThread.setListener(new IOManagerThread.IOListener() {
+            @Override
+            public void onIOCompleted(Process process) {
+                SwingUtilities
+                        .invokeLater(() -> logIOActivity(String.format("P%d completó I/O → READY", process.getPid())));
+            }
+
+            @Override
+            public void onProcessBlocked(Process process) {
+                SwingUtilities.invokeLater(() -> logProcessStateChange(process.getPid(), "RUNNING", "BLOCKED"));
+            }
+        });
+        ioThread.start();
+
+        // 3. Crear hilo del scheduler
+        int currentSpeed = 1001 - VelocidadSlider.getValue();
+        schedulerThread = new CPUSchedulerThread(scheduler, cpu, allProcesses, cpuSemaphore);
+        schedulerThread.setSimulationSpeed(currentSpeed);
+        schedulerThread.setListener(createSchedulerListener()); // ✅ USAR MÉTODO AUXILIAR
+        schedulerThread.start();
+
+        logEvent("HILOS", "Hilos iniciados: Scheduler, I/O, " + processThreads.size() + " procesos", Color.BLUE);
+    }
+
+    private void stopThreads() {
+        if (!threadsRunning)
+            return;
+
+        threadsRunning = false;
+
+        // Detener hilo del scheduler
+        if (schedulerThread != null) {
+            schedulerThread.stopScheduler();
+            schedulerThread = null;
+        }
+
+        // Detener hilo de I/O
+        if (ioThread != null) {
+            ioThread.stopIOManager();
+            ioThread = null;
+        }
+
+        // Detener hilos de procesos
+        for (ProcessThread pt : processThreads.values()) {
+            pt.stopProcess();
+        }
+        processThreads.clear();
+
+        logEvent("HILOS", "Todos los hilos detenidos", Color.RED);
+    }
+
+    private void updateUIFromThreads() {
+        if (!threadsRunning)
+            return;
+
+        // Obtener reloj global del scheduler
+        if (schedulerThread != null) {
+            globalClock = schedulerThread.getGlobalClock();
+        }
+
+        // Actualizar UI con modo actual
+        Process current = cpu.getCurrentProcess();
+        if (current != null) {
+            updateUIWithMode("User");
+        } else {
+            updateUIWithMode("Kernel");
+        }
+
+        // Actualizar gráficos
+        updateCharts();
+
+        // Verificar fin de simulación
+        checkSimulationEnd();
     }
 
     private void pausarReanudarSimulacion() {
         if (simulationTimer == null) {
             JOptionPane.showMessageDialog(this,
-                    "No hay ninguna simulación en ejecución",
-                    "Advertencia",
+                    "No hay simulación activa",
+                    "Error",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         if (isPaused) {
+            // ✅ REANUDAR
             simulationTimer.start();
+
+            // ✅ Reanudar hilos
+            if (schedulerThread != null) {
+                schedulerThread.resumeScheduler();
+            }
+            if (ioThread != null) {
+                ioThread.resumeIOManager();
+            }
+
             isPaused = false;
             PausarButton.setText("⏸ Pausar");
+            logEvent("SISTEMA", "Simulación reanudada (hilos + UI)", Color.GREEN);
+
         } else {
+            // ✅ PAUSAR
             simulationTimer.stop();
+
+            // ✅ Pausar hilos
+            if (schedulerThread != null) {
+                schedulerThread.pauseScheduler();
+            }
+            if (ioThread != null) {
+                ioThread.pauseIOManager();
+            }
+
             isPaused = true;
             PausarButton.setText("▶ Reanudar");
+            logEvent("SISTEMA", "Simulación pausada (hilos + UI)", Color.ORANGE);
         }
     }
 
     private void detenerSimulacion() {
+        // Detener timer de UI
         if (simulationTimer != null) {
             simulationTimer.stop();
             simulationTimer = null;
         }
+
+        // ✅ Detener hilos
+        stopThreads();
 
         isPaused = false;
         PausarButton.setText("⏸ Pausar");
@@ -721,7 +1009,7 @@ public class Ventana extends javax.swing.JFrame {
         logEvent("SISTEMA", String.format("Procesos terminados: %d/%d",
                 terminatedProcesses.getSize(), allProcesses.getSize()), Color.BLUE);
 
-        // ✅ NUEVO: Contar procesos en cada estado
+        // Contar procesos en cada estado
         int ready = 0, blocked = 0, suspended = 0, running = 0, newState = 0;
         for (int i = 0; i < allProcesses.getSize(); i++) {
             Process p = allProcesses.get(i);
@@ -729,14 +1017,14 @@ public class Ventana extends javax.swing.JFrame {
                 case READY:
                     ready++;
                     break;
+                case RUNNING:
+                    running++;
+                    break;
                 case BLOCKED:
                     blocked++;
                     break;
                 case SUSPENDED:
                     suspended++;
-                    break;
-                case RUNNING:
-                    running++;
                     break;
                 case NEW:
                     newState++;
@@ -747,23 +1035,10 @@ public class Ventana extends javax.swing.JFrame {
         logEvent("SISTEMA", String.format("Estado al detener: READY=%d, RUNNING=%d, BLOCKED=%d, SUSPENDED=%d, NEW=%d",
                 ready, running, blocked, suspended, newState), Color.BLUE);
 
-        // Listar procesos que nunca ejecutaron
-        if (newState > 0) {
-            StringBuilder neverExecuted = new StringBuilder("Procesos que nunca ejecutaron: ");
-            for (int i = 0; i < allProcesses.getSize(); i++) {
-                Process p = allProcesses.get(i);
-                if (p.getState() == ProcessState.NEW) {
-                    neverExecuted.append(String.format("P%d (AT=%d) ", p.getPid(), p.getArrivalTime()));
-                }
-            }
-            logEvent("ADVERTENCIA", neverExecuted.toString(), new Color(255, 152, 0));
-        }
-
         logEvent("SISTEMA", "═══════════════════════════════════════", Color.BLACK);
 
         sincronizarTablaResultados();
 
-        // Solo mostrar resultados si hay procesos terminados
         if (terminatedProcesses.getSize() > 0) {
             mostrarResultadosFinales();
         }
@@ -785,10 +1060,17 @@ public class Ventana extends javax.swing.JFrame {
     }
 
     private void reiniciarSimulacion() {
+        // ✅ Detener hilos primero
+        stopThreads();
+
         if (simulationTimer != null) {
             simulationTimer.stop();
             simulationTimer = null;
         }
+
+        // Reiniciar semáforos
+        cpuSemaphore = new Semaphore(1);
+        ioSemaphore = new Semaphore(1);
 
         // Reiniciar todo
         globalClock = 0;
@@ -816,7 +1098,6 @@ public class Ventana extends javax.swing.JFrame {
         PausarButton.setText("⏸ Pausar");
 
         clearCharts();
-
         clearLog();
 
         JOptionPane.showMessageDialog(this,
@@ -976,11 +1257,11 @@ public class Ventana extends javax.swing.JFrame {
                 lastExecutedProcess = null;
 
                 if (globalClock % 10 == 0) {
-                    logCPUActivity("CPU en estado IDLE - No hay procesos listos");
+                    logCPUActivity("CPU en estado KERNEL - No hay procesos listos");
                 }
 
                 if (shouldLog) {
-                    System.out.println("  💤 CPU IDLE - No hay procesos en READY");
+                    System.out.println("  💤 CPU Kernel - No hay procesos en READY");
                 }
 
                 updateUIWithMode("User");
@@ -1271,7 +1552,7 @@ public class Ventana extends javax.swing.JFrame {
         if (current != null) {
             updateUIWithMode("User");
         } else {
-            updateUIWithMode("Idle");
+            updateUIWithMode("Kernel");
         }
     }
 
@@ -1474,20 +1755,74 @@ public class Ventana extends javax.swing.JFrame {
 
     // ===== MÉTODO AUXILIAR: Obtener cola READY del scheduler =====
     private Lista<Process> getReadyQueueFromScheduler() {
-        if (scheduler instanceof FCFSScheduler) {
+        Lista<Process> allReadyProcesses = new Lista<>();
+
+        if (scheduler instanceof MultilevelFeedbackQueueScheduler) {
+            // ✅ MLFQ: Capturar de TODAS las colas (0, 1, 2, 3, new)
+            MultilevelFeedbackQueueScheduler mlfq = (MultilevelFeedbackQueueScheduler) scheduler;
+
+            extractFromQueue(allReadyProcesses, mlfq.getQueue0());
+            extractFromQueue(allReadyProcesses, mlfq.getQueue1());
+            extractFromQueue(allReadyProcesses, mlfq.getQueue2());
+            extractFromQueue(allReadyProcesses, mlfq.getQueue3());
+            extractFromQueue(allReadyProcesses, mlfq.getNewQueue());
+
+            System.out.println(
+                    "🔄 [MIGRACIÓN] MLFQ: Capturados " + allReadyProcesses.getSize() + " procesos de todas las colas");
+
+        } else if (scheduler instanceof RoundRobinScheduler) {
+            // ✅ RoundRobin: Convertir Queue a Lista
+            RoundRobinScheduler rr = (RoundRobinScheduler) scheduler;
+            return rr.getReadyQueue(); // Ya devuelve Lista
+
+        } else if (scheduler instanceof FCFSScheduler) {
             return ((FCFSScheduler) scheduler).getReadyQueue();
+
         } else if (scheduler instanceof SJFScheduler) {
             return ((SJFScheduler) scheduler).getReadyQueue();
+
         } else if (scheduler instanceof SRTFScheduler) {
             return ((SRTFScheduler) scheduler).getReadyQueue();
-        } else if (scheduler instanceof RoundRobinScheduler) {
-            return ((RoundRobinScheduler) scheduler).getReadyQueue();
+
         } else if (scheduler instanceof PriorityScheduler) {
             return ((PriorityScheduler) scheduler).getReadyQueue();
+
         } else if (scheduler instanceof HRRNScheduler) {
             return ((HRRNScheduler) scheduler).getReadyQueue();
         }
-        return null;
+
+        return allReadyProcesses;
+    }
+
+    // ===== NUEVO: Método auxiliar para extraer procesos de una Queue sin
+    // destruirla =====
+    private void extractFromQueue(Lista<Process> targetList, Queue<Process> sourceQueue) {
+        if (sourceQueue == null || sourceQueue.isEmpty()) {
+            return;
+        }
+
+        Queue<Process> temp = new Queue<>();
+        int size = sourceQueue.size();
+
+        // Extraer todos los procesos
+        for (int i = 0; i < size; i++) {
+            Process p = sourceQueue.dequeue();
+
+            // Solo agregar procesos que estén READY (no NEW, no BLOCKED)
+            if (p.getState() == ProcessState.READY) {
+                targetList.insertBegin(p);
+                System.out.println("  📦 Capturado: P" + p.getPid() + " (Estado: " + p.getState() + ")");
+            } else {
+                System.out.println("  ⚠️ Ignorado: P" + p.getPid() + " (Estado: " + p.getState() + " - no es READY)");
+            }
+
+            temp.enqueue(p);
+        }
+
+        // Restaurar la cola original
+        while (!temp.isEmpty()) {
+            sourceQueue.enqueue(temp.dequeue());
+        }
     }
 
     // ===== ACTUALIZAR GRÁFICOS =====
