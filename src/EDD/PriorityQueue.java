@@ -1,5 +1,6 @@
 package EDD;
 
+import Modelos.Process;
 
 /**
  * Cola de prioridad para procesos
@@ -35,7 +36,7 @@ public class PriorityQueue {
         if (isEmpty()) {
             throw new IllegalStateException("La cola está vacía");
         }
-        return list.getHead();
+        return list.getFirst();
     }
 
     /**
@@ -62,7 +63,28 @@ public class PriorityQueue {
     /**
      * Verifica si contiene un proceso
      */
-    
+    public boolean contains(Process process) {
+        return list.contains(process);
+    }
+
+    /**
+     * Remueve un proceso específico
+     */
+    public boolean remove(Process process) {
+        return list.remove(process);
+    }
+
+    /**
+     * Obtiene todos los procesos como array
+     */
+    public Process[] toArray() {
+        Object[] objects = list.toArray();
+        Process[] processes = new Process[objects.length];
+        for (int i = 0; i < objects.length; i++) {
+            processes[i] = (Process) objects[i];
+        }
+        return processes;
+    }
 
     @Override
     public String toString() {

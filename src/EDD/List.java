@@ -23,6 +23,13 @@ public class List <T>{
     public Nodo getHead() {
         return Head;
     }
+    
+    public T getFirst() {
+        if (isEmpty()) {
+            System.out.println("La lista esta vacia");
+        }
+        return Head.getData();
+    }
 
     public void setHead(Nodo Head) {
         this.Head = Head;
