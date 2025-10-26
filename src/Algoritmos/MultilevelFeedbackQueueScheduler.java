@@ -13,19 +13,19 @@ import Modelos.ProcessState;
 public class MultilevelFeedbackQueueScheduler implements Scheduler {
 
     // 4 colas de prioridad
-    private Queue<Process> queue0; 
-    private Queue<Process> queue1; 
-    private Queue<Process> queue2; 
-    private Queue<Process> queue3; 
+    private Queue<Process> queue0;
+    private Queue<Process> queue1;
+    private Queue<Process> queue2;
+    private Queue<Process> queue3;
 
-    private Queue<Process> newQueue; 
-    private Queue<Process> blockedQueue; 
+    private Queue<Process> newQueue;
+    private Queue<Process> blockedQueue;
     private Queue<Process> terminatedQueue;
 
     private CPU cpu;
     private int currentTime;
-    private int[] quantums = { 2, 4, 8, 16 }; 
-    private int agingThreshold = 10; 
+    private int[] quantums = { 2, 4, 8, 16 };
+    private int agingThreshold = 10;
 
     public MultilevelFeedbackQueueScheduler() {
         this.queue0 = new Queue<>();
@@ -42,7 +42,7 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
     @Override
     public void addProcess(Process process) {
         process.setState(ProcessState.NEW);
-        newQueue.enqueue(process); 
+        newQueue.enqueue(process);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             if (quantumUsed >= quantum && !current.isFinished()) {
                 current.degradePriority();
                 current.setState(ProcessState.READY);
-                current.resetQuantumUsedInCurrentLevel(); 
+                current.resetQuantumUsedInCurrentLevel();
 
                 Queue<Process> targetQueue = getQueueForLevel(current.getCurrentQueueLevel());
                 targetQueue.enqueue(cpu.releaseProcess());
@@ -116,12 +116,22 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             if (nextProcess != null) {
                 cpu.assignProcess(nextProcess);
                 nextProcess.setState(ProcessState.RUNNING);
-                nextProcess.resetQuantumUsedInCurrentLevel(); 
+                nextProcess.resetQuantumUsedInCurrentLevel();
             } else {
                 cpu.tickIdle();
                 incrementWaitingTimes();
             }
         }
+    }
+
+    public void addMigratedProcess(Process process) {
+        // No cambiar estado ni arrival time
+        // Agregar directamente a queue0 (máxima prioridad)
+        process.setCurrentQueueLevel(0);
+        process.resetQuantumUsedInCurrentLevel();
+        queue0.enqueue(process);
+
+        System.out.println("  📥 P" + process.getPid() + " migrado directamente a Queue0 (MLFQ)");
     }
 
     public int[] getQuantums() {
@@ -204,10 +214,10 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             Process p = newQueue.dequeue();
             if (p.getArrivalTime() <= currentTime) {
                 p.setState(ProcessState.READY);
-                p.setCurrentQueueLevel(0); 
+                p.setCurrentQueueLevel(0);
                 queue0.enqueue(p);
             } else {
-                newQueue.enqueue(p); 
+                newQueue.enqueue(p);
             }
         }
     }
@@ -245,7 +255,7 @@ public class MultilevelFeedbackQueueScheduler implements Scheduler {
             Process p = queue.dequeue();
 
             if (p.getTimeInCurrentQueue() >= agingThreshold) {
-                p.improvePriority(); 
+                p.improvePriority();
                 Queue<Process> targetQueue = getQueueForLevel(p.getCurrentQueueLevel());
                 targetQueue.enqueue(p);
             } else {
