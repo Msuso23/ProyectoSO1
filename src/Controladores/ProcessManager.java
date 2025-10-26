@@ -116,10 +116,6 @@ public class ProcessManager {
         return !processes.isEmpty();
     }
 
-    /**
-     * Crea una copia independiente de los procesos para simulación
-     * Esto evita modificar los procesos originales
-     */
     public Lista<Process> getProcessesCopy() {
         Lista<Process> copy = new Lista<>();
         for (int i = 0; i < processes.getSize(); i++) {

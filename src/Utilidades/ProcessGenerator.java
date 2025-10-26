@@ -8,7 +8,6 @@ import Modelos.Process;
  */
 public class ProcessGenerator {
 
-    // Nombres de procesos comunes
     private static final String[] PROCESS_NAMES = {
             "Chrome", "Firefox", "Word", "Excel", "Spotify",
             "Visual Studio", "Discord", "Zoom", "Teams", "Photoshop",
@@ -114,9 +113,7 @@ public class ProcessGenerator {
 
         for (int i = 1; i <= count; i++) {
             String name = getRandomProcessName();
-            // Todos llegan al tiempo 0
             int arrivalTime = 0;
-            // Burst times incrementales (para ver diferencias entre algoritmos)
             int burstTime = i * 3;
             int priority = randomInt(1, 5);
 
@@ -135,7 +132,7 @@ public class ProcessGenerator {
 
         for (int i = 1; i <= count; i++) {
             String name = getRandomProcessName();
-            int arrivalTime = i - 1; // Llegan secuencialmente
+            int arrivalTime = i - 1; 
 
             Process process = new Process(i, name, arrivalTime, burstTime, 0);
             processes.insertBegin(process);
@@ -154,7 +151,6 @@ public class ProcessGenerator {
         for (int i = 1; i <= count; i++) {
             String name = getRandomProcessName();
             int arrivalTime = randomInt(0, 5);
-            // Alternamos entre cortos y largos
             int burstTime = (i % 2 == 0) ? randomInt(2, 5) : randomInt(10, 20);
 
             Process process = new Process(i, name, arrivalTime, burstTime, 0);
@@ -208,7 +204,6 @@ public class ProcessGenerator {
 
         sb.append("└─────┴──────────────┴────────┴────────┴──────────┘\n");
 
-        // Estadísticas básicas
         int totalBurst = 0;
         int maxArrival = 0;
 

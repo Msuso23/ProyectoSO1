@@ -55,7 +55,7 @@ public class Queue <T> {
     }
 
     /**
-     * Limpia la cola
+     * Vacia la cola
      */
     public void clear() {
         list.vaciar();

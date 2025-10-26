@@ -8,7 +8,7 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo Round Robin (RR) con soporte I/O
+ * Algoritmo Round Robin
  * Cada proceso recibe un quantum de tiempo
  */
 public class RoundRobinScheduler implements Scheduler {
@@ -18,8 +18,8 @@ public class RoundRobinScheduler implements Scheduler {
     private Lista<Process> allProcesses;
     private Lista<Process> completedProcesses;
     private IOManager ioManager;
-    private int quantum; // Tiempo de quantum
-    private int currentQuantum; // Quantum restante del proceso actual
+    private int quantum; 
+    private int currentQuantum; 
 
     public RoundRobinScheduler(int quantum) {
         this.readyQueue = new Queue<>();
@@ -34,11 +34,9 @@ public class RoundRobinScheduler implements Scheduler {
 
     @Override
     public void addProcess(Process process) {
-        // ✅ CAMBIO: Agregar DIRECTAMENTE a readyQueue
         process.setState(ProcessState.READY);
         readyQueue.enqueue(process);
 
-        // También agregar a allProcesses
         allProcesses.insertBegin(process);
     }
 
@@ -47,7 +45,7 @@ public class RoundRobinScheduler implements Scheduler {
         if (readyQueue.isEmpty()) {
             return null;
         }
-        currentQuantum = quantum; // Reiniciar quantum
+        currentQuantum = quantum; 
         return readyQueue.dequeue();
     }
 
@@ -59,7 +57,6 @@ public class RoundRobinScheduler implements Scheduler {
         sortProcessesByArrivalTime();
 
         while (completedProcesses.getSize() < allProcesses.getSize() || !blockedQueue.isEmpty() || cpu.isBusy()) {
-            // 1. Agregar procesos que han llegado
             while (processIndex < allProcesses.getSize() &&
                     allProcesses.get(processIndex).getArrivalTime() <= currentTime) {
                 Process p = allProcesses.get(processIndex);
@@ -68,46 +65,38 @@ public class RoundRobinScheduler implements Scheduler {
                 processIndex++;
             }
 
-            // 2. Procesar operaciones I/O de procesos bloqueados
             Queue<Process> readyFromIO = ioManager.processIOCycle();
             while (!readyFromIO.isEmpty()) {
                 Process p = readyFromIO.dequeue();
                 p.setState(ProcessState.READY);
-                // Los procesos que retornan de I/O se les reinicia el quantum
                 readyQueue.enqueue(p);
             }
 
-            // 3. Asignar proceso si CPU ociosa
             if (cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process nextProcess = selectNextProcess();
                 cpu.assignProcess(nextProcess);
             }
 
-            // 4. Ejecutar ciclo
             if (!cpu.isIdle()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 boolean canContinue = cpu.executeCycle(currentTime);
                 currentQuantum--;
 
-                // Verificar si el proceso terminó
                 if (currentProcess.isFinished()) {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
-                    currentQuantum = quantum; // Reiniciar para siguiente proceso
+                    currentQuantum = quantum; 
                 }
-                // Verificar si necesita operación I/O
                 else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());
-                    currentQuantum = quantum; // Reiniciar para siguiente proceso
+                    currentQuantum = quantum;
                 }
-                // Verificar si se agotó el quantum
                 else if (currentQuantum <= 0) {
-                    // Quantum agotado, devolver a cola
                     currentProcess.setState(ProcessState.READY);
                     readyQueue.enqueue(cpu.releaseProcess());
-                    currentQuantum = quantum; // Reiniciar
+                    currentQuantum = quantum;
                 }
             } else {
                 cpu.tickIdle();
@@ -175,20 +164,16 @@ public class RoundRobinScheduler implements Scheduler {
     }
 
     public Lista<Process> getReadyQueue() {
-        // Convertir Queue a LinkedList para visualización
         Lista<Process> list = new Lista<>();
 
-        // Crear una copia temporal de la queue
         Queue<Process> temp = new Queue<>();
 
-        // Transferir elementos de readyQueue a list y temp
         while (!readyQueue.isEmpty()) {
             Process p = readyQueue.dequeue();
             list.insertBegin(p);
             temp.enqueue(p);
         }
 
-        // Restaurar readyQueue desde temp
         while (!temp.isEmpty()) {
             readyQueue.enqueue(temp.dequeue());
         }

@@ -162,7 +162,6 @@ public class Statistics {
             return 1.0;
         }
 
-        // Índice de Jain
         double fairness = (sumCpuTime * sumCpuTime) / (n * sumSquaredCpuTime);
 
         return fairness;
@@ -225,7 +224,6 @@ public class Statistics {
         StringBuilder report = new StringBuilder();
         report.append("========== ESTADÍSTICAS DE LA SIMULACIÓN ==========\n\n");
 
-        // Métricas de tiempo
         report.append("MÉTRICAS DE TIEMPO:\n");
         report.append(String.format("  Tiempo Promedio de Espera (WT): %.2f unidades\n",
                 calculateAverageWaitingTime(processes)));
@@ -234,7 +232,6 @@ public class Statistics {
         report.append(String.format("  Tiempo Promedio de Respuesta (RT): %.2f unidades\n",
                 calculateAverageResponseTime(processes)));
 
-        // Métricas del sistema
         report.append("\nMÉTRICAS DEL SISTEMA:\n");
         report.append(String.format("  Utilización del CPU: %.2f%%\n",
                 calculateCPUUtilization(cpu)));
@@ -243,7 +240,6 @@ public class Statistics {
         report.append(String.format("  Índice de Equidad (Fairness): %.4f\n",
                 calculateFairness(processes)));
 
-        // Métricas operacionales
         report.append("\nMÉTRICAS OPERACIONALES:\n");
         report.append(String.format("  Total de Procesos: %d\n", processes.getSize()));
         report.append(String.format("  Tiempo Total de Simulación: %d unidades\n", totalTime));

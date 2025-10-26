@@ -57,18 +57,16 @@ public class Lista<T> {
 
     public void vaciar() {
         this.Head = null;
-        this.Tail = null; // También limpiar 'last'
+        this.Tail = null; 
         this.size = 0;
     }
 
     public void insertBegin(Object element) {
         Nodo<T> nodo = new Nodo<>((T) element);
         if (isEmpty()) {
-            // ✅ CORREGIDO: Primer nodo, Head y Tail apuntan al mismo
             Head = nodo;
             Tail = nodo;
         } else {
-            // ✅ CORREGIDO: Mantener enlaces bidireccionales
             nodo.setNext(Head);
             Head.setPrevious(nodo);
             Head = nodo;
@@ -79,11 +77,9 @@ public class Lista<T> {
     public void insertarFinal(Object dato) {
         Nodo<T> pNew = new Nodo<>((T) dato);
         if (isEmpty()) {
-            // ✅ CORREGIDO: Primer nodo
             Head = pNew;
             Tail = pNew;
         } else {
-            // ✅ CORREGIDO: Insertar al final manteniendo Tail
             Tail.setNext(pNew);
             pNew.setPrevious(Tail);
             Tail = pNew;
@@ -129,7 +125,6 @@ public class Lista<T> {
     private Nodo<T> getNodeAt(int index) {
         Nodo<T> current;
 
-        // Optimización: buscar desde el extremo más cercano
         if (index < size / 2) {
             current = Head;
             for (int i = 0; i < index; i++) {

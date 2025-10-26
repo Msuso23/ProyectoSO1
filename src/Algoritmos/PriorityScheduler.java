@@ -8,9 +8,8 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo de Planificación por Prioridad con Aging y soporte I/O
+ * Algoritmo de Planificación por Prioridad con Aging 
  * Menor número = Mayor prioridad
- * Aging: Previene inanición incrementando prioridad con el tiempo
  */
 public class PriorityScheduler implements Scheduler {
     private Lista<Process> readyQueue;
@@ -20,8 +19,7 @@ public class PriorityScheduler implements Scheduler {
     private Lista<Process> completedProcesses;
     private IOManager ioManager;
 
-    // Configuración de Aging
-    private int agingThreshold = 10; // Tiempo de espera para mejorar prioridad
+    private int agingThreshold = 10; 
     private boolean agingEnabled = true;
 
     public PriorityScheduler() {
@@ -43,11 +41,9 @@ public class PriorityScheduler implements Scheduler {
 
     @Override
     public void addProcess(Process process) {
-        // ✅ CAMBIO: Agregar DIRECTAMENTE a readyQueue
         process.setState(ProcessState.READY);
         readyQueue.insertBegin(process);
 
-        // También agregar a allProcesses
         allProcesses.insertBegin(process);
     }
 
@@ -61,7 +57,6 @@ public class PriorityScheduler implements Scheduler {
             return null;
         }
 
-        // Buscar proceso con mayor prioridad (menor número)
         int highestPriorityIndex = 0;
         int highestPriority = readyQueue.get(0).getPriority();
 
@@ -84,7 +79,6 @@ public class PriorityScheduler implements Scheduler {
 
         while (completedProcesses.getSize() < allProcesses.getSize() || !blockedQueue.isEmpty() || cpu.isBusy()) {
 
-            // 1. Admitir procesos que han llegado
             while (processIndex < allProcesses.getSize() &&
                     allProcesses.get(processIndex).getArrivalTime() <= currentTime) {
                 Process p = allProcesses.get(processIndex);
@@ -93,35 +87,28 @@ public class PriorityScheduler implements Scheduler {
                 processIndex++;
             }
 
-            // 2. Procesar operaciones I/O de procesos bloqueados
             processBlockedQueue();
 
-            // 3. Aplicar aging (si está habilitado)
             if (agingEnabled && currentTime % agingThreshold == 0 && currentTime > 0) {
                 applyAging();
             }
 
-            // 4. Incrementar tiempo de espera de procesos en ready
             incrementWaitingTimes();
 
-            // 5. Asignar proceso si CPU está libre
             if (cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process nextProcess = selectNextProcess();
                 cpu.assignProcess(nextProcess);
             }
 
-            // 6. Ejecutar ciclo de CPU
             if (!cpu.isIdle()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 boolean canContinue = cpu.executeCycle(currentTime);
 
-                // Verificar si terminó
                 if (currentProcess.isFinished()) {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
                 }
-                // Verificar si necesita I/O
                 else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());
@@ -158,12 +145,10 @@ public class PriorityScheduler implements Scheduler {
         for (int i = 0; i < readyQueue.getSize(); i++) {
             Process p = readyQueue.get(i);
 
-            // Si ha esperado más del umbral, mejorar prioridad
             if (p.getTimeInCurrentQueue() >= agingThreshold && p.getPriority() > 0) {
                 int oldPriority = p.getPriority();
-                p.improvePriority(); // Disminuye el número = aumenta prioridad
+                p.improvePriority(); 
 
-                // Si la prioridad base es mayor que 0, decrementar
                 if (oldPriority > 0) {
                     p.setPriority(oldPriority - 1);
                 }

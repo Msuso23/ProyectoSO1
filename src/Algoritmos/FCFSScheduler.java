@@ -8,8 +8,8 @@ import Modelos.ProcessState;
 import Controladores.IOManager;
 
 /**
- * Algoritmo First-Come, First-Served (FCFS) con soporte I/O
- * Los procesos se ejecutan en el orden en que llegan
+ * Algoritmo First-Come, First-Served (FCFS)
+ * Los procesos se ejecutan en el orden en que llegan (FIFO)
  */
 public class FCFSScheduler implements Scheduler {
     private Queue<Process> readyQueue;
@@ -51,11 +51,9 @@ public class FCFSScheduler implements Scheduler {
         int currentTime = 0;
         int processIndex = 0;
 
-        // Ordenar procesos por tiempo de llegada (bubble sort simple)
         sortProcessesByArrivalTime();
 
         while (completedProcesses.getSize() < allProcesses.getSize() || !blockedQueue.isEmpty() || cpu.isBusy()) {
-            // 1. Agregar procesos que han llegado a la cola de listos
             while (processIndex < allProcesses.getSize() &&
                     allProcesses.get(processIndex).getArrivalTime() <= currentTime) {
                 Process p = allProcesses.get(processIndex);
@@ -64,7 +62,6 @@ public class FCFSScheduler implements Scheduler {
                 processIndex++;
             }
 
-            // 2. Procesar operaciones I/O de procesos bloqueados
             Queue<Process> readyFromIO = ioManager.processIOCycle();
             while (!readyFromIO.isEmpty()) {
                 Process p = readyFromIO.dequeue();
@@ -72,30 +69,25 @@ public class FCFSScheduler implements Scheduler {
                 readyQueue.enqueue(p);
             }
 
-            // 3. Si la CPU está ociosa, asignar un nuevo proceso
             if (cpu.isIdle() && !readyQueue.isEmpty()) {
                 Process nextProcess = selectNextProcess();
                 cpu.assignProcess(nextProcess);
             }
 
-            // 4. Ejecutar ciclo de CPU
             if (!cpu.isIdle()) {
                 Process currentProcess = cpu.getCurrentProcess();
                 boolean canContinue = cpu.executeCycle(currentTime);
 
-                // Verificar si el proceso terminó
                 if (currentProcess.isFinished()) {
                     currentProcess.setState(ProcessState.TERMINATED);
                     currentProcess.calculateMetrics(currentTime);
                     completedProcesses.insertBegin(cpu.releaseProcess());
                 }
-                // Verificar si necesita operación I/O
                 else if (!canContinue) {
                     currentProcess.setState(ProcessState.BLOCKED);
                     ioManager.blockProcess(cpu.releaseProcess());
                 }
             } else {
-                // CPU ociosa, avanzar tiempo
                 cpu.tickIdle();
             }
 
@@ -165,17 +157,14 @@ public class FCFSScheduler implements Scheduler {
         // Convertir Queue a LinkedList para visualización
         Lista<Process> list = new Lista<>();
 
-        // Crear una copia temporal de la queue
         Queue<Process> temp = new Queue<>();
 
-        // Transferir elementos de readyQueue a list y temp
         while (!readyQueue.isEmpty()) {
             Process p = readyQueue.dequeue();
             list.insertBegin(p);
             temp.enqueue(p);
         }
 
-        // Restaurar readyQueue desde temp
         while (!temp.isEmpty()) {
             readyQueue.enqueue(temp.dequeue());
         }
