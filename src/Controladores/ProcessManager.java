@@ -1,6 +1,6 @@
 package Controladores;
 
-import EDD.List;
+import EDD.Lista;
 import Modelos.Process;
 import Modelos.ProcessState;
 
@@ -9,11 +9,11 @@ import Modelos.ProcessState;
  * Maneja la creación, validación y almacenamiento de procesos
  */
 public class ProcessManager {
-    private List<Process> processes;
+    private Lista<Process> processes;
     private int nextPid;
 
     public ProcessManager() {
-        this.processes = new List<>();
+        this.processes = new Lista<>();
         this.nextPid = 1;
     }
 
@@ -76,15 +76,15 @@ public class ProcessManager {
     /**
      * Obtiene todos los procesos
      */
-    public List<Process> getAllProcesses() {
+    public Lista<Process> getAllProcesses() {
         return processes;
     }
 
     /**
      * Obtiene procesos por estado
      */
-    public List<Process> getProcessesByState(ProcessState state) {
-        List<Process> filtered = new List<>();
+    public Lista<Process> getProcessesByState(ProcessState state) {
+        Lista<Process> filtered = new Lista<>();
         for (int i = 0; i < processes.getSize(); i++) {
             Process p = processes.get(i);
             if (p.getState() == state) {
@@ -120,8 +120,8 @@ public class ProcessManager {
      * Crea una copia independiente de los procesos para simulación
      * Esto evita modificar los procesos originales
      */
-    public List<Process> getProcessesCopy() {
-        List<Process> copy = new List<>();
+    public Lista<Process> getProcessesCopy() {
+        Lista<Process> copy = new Lista<>();
         for (int i = 0; i < processes.getSize(); i++) {
             Process original = processes.get(i);
             Process duplicate = new Process(

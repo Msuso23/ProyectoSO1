@@ -7,10 +7,10 @@ import Modelos.Process;
  * Los procesos con menor valor de prioridad se extraen primero
  */
 public class PriorityQueue {
-    private List<Process> list;
+    private Lista<Process> list;
 
     public PriorityQueue() {
-        this.list = new List<>();
+        this.list = new Lista<>();
     }
 
     /**

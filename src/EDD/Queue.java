@@ -10,10 +10,10 @@ package EDD;
  * @param <T>
  */
 public class Queue <T> {
-    private List <T> list;
+    private Lista <T> list;
     
     public Queue() {
-        this.list = new List<>();
+        this.list = new Lista<>();
     }
 
     public void enqueue(T data) {

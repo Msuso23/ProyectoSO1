@@ -9,12 +9,12 @@ package EDD;
  * @author susov
  * @param <T>
  */
-public class List <T>{
+public class Lista <T>{
     private Nodo<T> Head; 
     private Nodo<T> Tail; 
     private int size; 
 
-    public List() {
+    public Lista() {
         this.Head = null;
         this.Tail = null;
         this.size = 0;
