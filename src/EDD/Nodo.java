@@ -7,29 +7,47 @@ package EDD;
 /**
  *
  * @author susov
+ * @param <T>
  */
-public class Nodo {
-    private Object dato;
-    private Nodo next;
+public class Nodo <T> {
+    private T dato;
+    private Nodo <T> next;
+    private Nodo <T> previous;
 
-    public Nodo(Object Dato) {
-        this.dato = Dato;
+    public Nodo(T dato) {
+        this.dato = dato;
         this.next = null;
+        this.previous = null;
     }
 
-    public Object getDato() {
+    
+
+    public T getData() {
         return dato;
     }
 
-    public void setDato(Object element) {
-        this.dato = element;
+    public void setData(T dato) {
+        this.dato = dato;
     }
 
-    public Nodo getNext() {
+    public Nodo<T> getNext() {
         return next;
     }
 
-    public void setNext(Nodo next) {
+    public void setNext(Nodo<T> next) {
         this.next = next;
+    }
+
+    public Nodo<T> getPrevious() {
+        return previous;
+    }
+
+    public void setPrevious(Nodo<T> previous) {
+        this.previous = previous;
+    }
+
+    @Override
+    public String toString() {
+        return "Node{data=" + dato + "}";
     }
 }

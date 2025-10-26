@@ -7,79 +7,84 @@ package EDD;
 /**
  *
  * @author susov
+ * @param <T>
  */
-public class Queue {
-    private Nodo head, tail;
-    private int size;
+public class Queue <T> {
+    private List <T> list;
     
     public Queue() {
-        this.head = this.tail = null;
-        size = 0;
+        this.list = new List<>();
     }
 
-    public Nodo getHead() {
-        return head;
+    public void enqueue(T data) {
+        list.insertarFinal(data);
     }
 
-    public void setHead(Nodo head) {
-        this.head = head;
-    }
-
-    public Nodo getTail() {
-        return tail;
-    }
-
-    public void setTail(Nodo tail) {
-        this.tail = tail;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
-    public void setSize(int size) {
-        this.size = size;
-    }
-    
-    public void enqueue(Object element) {
-        Nodo nodo = new Nodo(element);
+    /**
+     * Remueve y retorna el primer elemento
+     */
+    public T dequeue() {
         if (isEmpty()) {
-            setHead(nodo);
-            setTail(nodo);
-        } else {
-            getTail().setNext(nodo);
-            setTail(nodo);
+            throw new IllegalStateException("La cola está vacía");
         }
-        size++;
+        return list.removeFirst();
     }
 
-    public void dequeue() {
+    /**
+     * Retorna el primer elemento sin removerlo
+     */
+    public T peek() {
         if (isEmpty()) {
-            System.out.println("La lista esta vacia");
-        } else {
-            Nodo pointer = getHead();
-            setHead(pointer.getNext());
-            pointer.setNext(null);
-            size--;
+            System.out.println("La lista esta vacia");;
         }
-    }
-    
-    public Object dispatch() {
-        Object temp = getHead().getDato();
-        dequeue();
-        return temp;
+        return (T) list.getHead();
     }
 
+    /**
+     * Verifica si está vacía
+     */
     public boolean isEmpty() {
-        return getHead() == null && getTail() == null;
+        return list.isEmpty();
     }
-    
-    public void print() {
-        Nodo pointer = getHead();
-        while (pointer != null) {
-            System.out.println("[ "+pointer.getDato() + " ]");
-            pointer = pointer.getNext();
-        }
+
+    /**
+     * Retorna el tamaño
+     */
+    public int size() {
+        return list.getSize();
+    }
+
+    /**
+     * Limpia la cola
+     */
+    public void clear() {
+        list.vaciar();
+    }
+
+    /**
+     * Verifica si contiene un elemento
+     */
+    public boolean contains(T data) {
+        return list.contains(data);
+    }
+
+    /**
+     * Remueve un elemento específico de la cola
+     */
+    public boolean remove(T data) {
+        return list.remove(data);
+    }
+
+    /**
+     * Obtiene todos los elementos como array
+     */
+    public Object[] toArray() {
+        return list.toArray();
+    }
+
+    @Override
+    public String toString() {
+        return list.toString();
     }
     
 }
